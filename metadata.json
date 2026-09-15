@@ -1,0 +1,6 @@
+{
+  "name": "أفق - Ofoq",
+  "description": "منصة أفق التعليمية لإدارة الجلسات والطلاب، الخطط التربوية الفردية، تقارير أولياء الأمور المباشرة، وبوابات المتابعة المنفصلة",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
