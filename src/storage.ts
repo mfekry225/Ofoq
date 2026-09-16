@@ -15,7 +15,20 @@ export const storage = {
   getTeacherCredentials: (): TeacherCredentials => {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.TEACHER_CREDS);
-      return data ? JSON.parse(data) : DEFAULT_TEACHER_CREDENTIALS;
+      if (data) {
+        const parsed = JSON.parse(data);
+        // Automatically migrate legacy default password '123' to 'Mh882018'
+        if (parsed.password === '123') {
+          parsed.password = 'Mh882018';
+          localStorage.setItem(STORAGE_KEYS.TEACHER_CREDS, JSON.stringify(parsed));
+        }
+        if (!parsed.googleAccount) {
+          parsed.googleAccount = DEFAULT_TEACHER_CREDENTIALS.googleAccount;
+          localStorage.setItem(STORAGE_KEYS.TEACHER_CREDS, JSON.stringify(parsed));
+        }
+        return parsed;
+      }
+      return DEFAULT_TEACHER_CREDENTIALS;
     } catch {
       return DEFAULT_TEACHER_CREDENTIALS;
     }

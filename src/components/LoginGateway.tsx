@@ -41,15 +41,14 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
     const teacherCreds: TeacherCredentials = storage.getTeacherCredentials();
     const isTeacherEmail = 
       inputUser.toLowerCase() === teacherProfile.email.toLowerCase() ||
+      inputUser.toLowerCase() === teacherCreds.email.toLowerCase() ||
       inputUser.toLowerCase() === 'mfekry225@gmail.com' ||
       inputUser.toLowerCase() === 'admin' ||
       inputUser.toLowerCase() === 'teacher';
 
     const isTeacherPassword = 
       inputPass === teacherCreds.password ||
-      inputPass === '123' ||
-      inputPass === '1234' ||
-      inputPass === 'admin';
+      inputPass === 'Mh882018';
 
     // 1. Check if Teacher Login
     if (isTeacherEmail && isTeacherPassword) {

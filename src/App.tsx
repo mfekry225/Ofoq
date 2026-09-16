@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   TeacherProfile, Student, SessionRecord, TimelineMilestone, 
-  EnrollmentLead, CurrentUser 
+  EnrollmentLead, CurrentUser, TeacherCredentials 
 } from './types';
 import { storage } from './storage';
 import { LoginGateway } from './components/LoginGateway';
@@ -20,6 +20,7 @@ export default function App() {
   // App Data State with LocalStorage Persistence
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => storage.getCurrentUser());
   const [teacherProfile, setTeacherProfile] = useState<TeacherProfile>(() => storage.getTeacherProfile());
+  const [teacherCredentials, setTeacherCredentials] = useState<TeacherCredentials>(() => storage.getTeacherCredentials());
   const [students, setStudents] = useState<Student[]>(() => storage.getStudents());
   const [sessions, setSessions] = useState<SessionRecord[]>(() => storage.getSessions());
   const [timelines, setTimelines] = useState<TimelineMilestone[]>(() => storage.getTimelines());
@@ -39,6 +40,10 @@ export default function App() {
       setCurrentView('dashboard');
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    storage.saveTeacherCredentials(teacherCredentials);
+  }, [teacherCredentials]);
 
   useEffect(() => {
     storage.saveStudents(students);
@@ -220,6 +225,8 @@ export default function App() {
               students={students}
               sessions={sessions}
               leads={leads}
+              teacherCredentials={teacherCredentials}
+              onUpdateCredentials={(newCreds) => setTeacherCredentials(newCreds)}
               onOpenNewSession={(studentId) => {
                 setSessionModalStudentId(studentId);
                 setIsSessionModalOpen(true);

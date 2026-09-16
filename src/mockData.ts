@@ -2,7 +2,13 @@ import { TeacherProfile, Student, SessionRecord, TimelineMilestone, EnrollmentLe
 
 export const DEFAULT_TEACHER_CREDENTIALS: TeacherCredentials = {
   email: 'mfekry225@gmail.com',
-  password: '123'
+  password: 'Mh882018',
+  googleAccount: {
+    linked: true,
+    email: 'mfekry225@gmail.com',
+    name: 'أ. محمد فكري (حساب Google)',
+    linkedAt: '2026-09-16'
+  }
 };
 
 export const INITIAL_TEACHER_PROFILE: TeacherProfile = {

@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
-import { Student, SessionRecord, EnrollmentLead, TeacherProfile } from '../types';
+import { Student, SessionRecord, EnrollmentLead, TeacherProfile, TeacherCredentials } from '../types';
 import { 
   Users, Calendar, Plus, Share2, BookOpen, Clock, Award, TrendingUp, 
   MessageCircle, Phone, Search, Filter, CheckCircle2, XCircle, Bell, 
   ChevronDown, LogOut, Check, Sparkles, ExternalLink, ShieldCheck, FileText,
-  Copy, Key, User, Lock, Send
+  Copy, Key, User, Lock, Send, KeyRound, HeartPulse, MapPin, Baby
 } from 'lucide-react';
 import { getWhatsAppUrl, formatDateArabic } from '../utils';
+import { AccountSettingsModal } from './AccountSettingsModal';
+import { calculateAgeArabic } from '../studentOptions';
 
 interface TeacherDashboardProps {
   profile: TeacherProfile;
   students: Student[];
   sessions: SessionRecord[];
   leads: EnrollmentLead[];
+  teacherCredentials: TeacherCredentials;
+  onUpdateCredentials: (creds: TeacherCredentials) => void;
   onOpenNewSession: (studentId?: string) => void;
   onOpenNewStudent: () => void;
   onEditStudent: (student: Student) => void;
@@ -26,6 +30,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   students,
   sessions,
   leads,
+  teacherCredentials,
+  onUpdateCredentials,
   onOpenNewSession,
   onOpenNewStudent,
   onEditStudent,
@@ -37,6 +43,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStudentFilter, setSelectedStudentFilter] = useState<string>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Filtered Sessions
   const filteredSessions = sessions.filter((s) => {
@@ -93,6 +100,20 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             <Plus className="w-4 h-4 text-white" />
             <span className="hidden sm:inline">تسجيل جلسة جديدة</span>
             <span className="sm:hidden">جلسة</span>
+          </button>
+
+          <button
+            id="teacher-settings-btn"
+            onClick={() => setIsSettingsOpen(true)}
+            title="إعدادات الحساب وكلمة المرور وربط Google"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-sky-50 text-slate-700 hover:text-sky-800 border border-slate-200 hover:border-sky-200 text-xs font-bold transition shadow-2xs relative"
+          >
+            <KeyRound className="w-3.5 h-3.5 text-sky-600" />
+            <span className="hidden sm:inline">الإعدادات وكلمة المرور</span>
+            <span className="sm:hidden">الإعدادات</span>
+            {teacherCredentials.googleAccount?.linked && (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 absolute -top-0.5 -right-0.5 ring-2 ring-white" title="حساب Google مربوط" />
+            )}
           </button>
 
           <button
@@ -363,6 +384,30 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                         </span>
                       </div>
 
+                      {/* Clinical Badges & Info: Diagnosis, Age, Address */}
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                        {std.diagnosis && (
+                          <span className="px-2 py-0.5 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold flex items-center gap-1">
+                            <HeartPulse className="w-3 h-3 text-rose-500" />
+                            <span>{std.diagnosis}</span>
+                          </span>
+                        )}
+
+                        {std.birthDate && (
+                          <span className="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold flex items-center gap-1">
+                            <Baby className="w-3 h-3 text-emerald-600" />
+                            <span>{calculateAgeArabic(std.birthDate) || std.birthDate}</span>
+                          </span>
+                        )}
+
+                        {std.address && (
+                          <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-medium flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-slate-400" />
+                            <span className="truncate max-w-[140px]">{std.address}</span>
+                          </span>
+                        )}
+                      </div>
+
                       {/* Dedicated Parent Account Credentials Card */}
                       <div className="mt-3 p-3 bg-sky-50/40 rounded-xl border border-sky-200/80 space-y-2 text-xs">
                         <div className="flex items-center justify-between text-slate-700">
@@ -524,6 +569,18 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
         )}
       </div>
+
+      {/* Account Settings Modal */}
+      {isSettingsOpen && (
+        <AccountSettingsModal
+          currentCredentials={teacherCredentials}
+          onSave={(creds) => {
+            onUpdateCredentials(creds);
+            setIsSettingsOpen(false);
+          }}
+          onClose={() => setIsSettingsOpen(false)}
+        />
+      )}
     </div>
   );
 };

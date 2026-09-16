@@ -1,8 +1,17 @@
 export type Role = 'teacher' | 'parent';
 
+export interface GoogleAccountLink {
+  linked: boolean;
+  email: string;
+  name?: string;
+  avatarUrl?: string;
+  linkedAt?: string;
+}
+
 export interface TeacherCredentials {
   email: string;
   password: string;
+  googleAccount?: GoogleAccountLink;
 }
 
 export interface TeacherProfile {
@@ -34,6 +43,9 @@ export interface Student {
   name: string;
   grade: string;
   subject: string;
+  birthDate?: string; // تاريخ الميلاد YYYY-MM-DD
+  address?: string; // العنوان أو المنطقة السكنية
+  diagnosis?: string; // التشخيص الطبي / التأهيلي
   parentName: string;
   parentPhone: string;
   parentUsername: string; // Unique username for parent login
