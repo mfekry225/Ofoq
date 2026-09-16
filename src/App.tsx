@@ -42,22 +42,22 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = cloudService.subscribeToCloud({
       onStudentsUpdate: (remoteStudents) => {
-        if (remoteStudents && remoteStudents.length > 0) {
+        if (Array.isArray(remoteStudents)) {
           setStudents(remoteStudents);
         }
       },
       onSessionsUpdate: (remoteSessions) => {
-        if (remoteSessions && remoteSessions.length > 0) {
+        if (Array.isArray(remoteSessions)) {
           setSessions(remoteSessions);
         }
       },
       onTimelinesUpdate: (remoteTimelines) => {
-        if (remoteTimelines && remoteTimelines.length > 0) {
+        if (Array.isArray(remoteTimelines)) {
           setTimelines(remoteTimelines);
         }
       },
       onLeadsUpdate: (remoteLeads) => {
-        if (remoteLeads && remoteLeads.length > 0) {
+        if (Array.isArray(remoteLeads)) {
           setLeads(remoteLeads);
         }
       },
