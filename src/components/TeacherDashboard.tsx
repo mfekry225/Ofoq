@@ -4,11 +4,13 @@ import {
   Users, Calendar, Plus, Share2, BookOpen, Clock, Award, TrendingUp, 
   MessageCircle, Phone, Search, Filter, CheckCircle2, XCircle, Bell, 
   ChevronDown, LogOut, Check, Sparkles, ExternalLink, ShieldCheck, FileText,
-  Copy, Key, User, Lock, Send, KeyRound, HeartPulse, MapPin, Baby
+  Copy, Key, User, Lock, Send, KeyRound, HeartPulse, MapPin, Baby, Cloud, CloudCheck,
+  RefreshCw, Trash2
 } from 'lucide-react';
 import { getWhatsAppUrl, formatDateArabic } from '../utils';
 import { AccountSettingsModal } from './AccountSettingsModal';
 import { calculateAgeArabic } from '../studentOptions';
+import { CloudSyncStatus } from '../cloudFirestore';
 
 interface TeacherDashboardProps {
   profile: TeacherProfile;
@@ -16,10 +18,14 @@ interface TeacherDashboardProps {
   sessions: SessionRecord[];
   leads: EnrollmentLead[];
   teacherCredentials: TeacherCredentials;
+  cloudSyncStatus?: CloudSyncStatus;
+  cloudStatusMessage?: string;
+  onForceSync?: () => Promise<boolean>;
   onUpdateCredentials: (creds: TeacherCredentials) => void;
   onOpenNewSession: (studentId?: string) => void;
   onOpenNewStudent: () => void;
   onEditStudent: (student: Student) => void;
+  onDeleteStudent?: (studentId: string) => void;
   onShareSession: (session: SessionRecord, student: Student) => void;
   onAcceptLead: (lead: EnrollmentLead) => void;
   onLogout: () => void;
@@ -31,10 +37,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   sessions,
   leads,
   teacherCredentials,
+  cloudSyncStatus = 'synced',
+  cloudStatusMessage,
+  onForceSync,
   onUpdateCredentials,
   onOpenNewSession,
   onOpenNewStudent,
   onEditStudent,
+  onDeleteStudent,
   onShareSession,
   onAcceptLead,
   onLogout,
@@ -44,6 +54,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [selectedStudentFilter, setSelectedStudentFilter] = useState<string>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isSyncingNow, setIsSyncingNow] = useState(false);
+  const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
 
   // Filtered Sessions
   const filteredSessions = sessions.filter((s) => {
@@ -92,6 +104,60 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Cloud Firestore Status Badge & One-Click Backup */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-50 border border-slate-200 text-[11px] font-bold">
+            {cloudSyncStatus === 'synced' ? (
+              <span className="flex items-center gap-1 text-emerald-700">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <Cloud className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="hidden md:inline">سحابي (Firestore) متصل ومحمي</span>
+                <span className="md:hidden">سحابي ✅</span>
+              </span>
+            ) : cloudSyncStatus === 'syncing' || isSyncingNow ? (
+              <span className="flex items-center gap-1 text-sky-700">
+                <RefreshCw className="w-3 h-3 text-sky-600 animate-spin" />
+                <span className="hidden sm:inline">جاري المزامنة السحابية...</span>
+                <span className="sm:hidden">مزامنة...</span>
+              </span>
+            ) : cloudSyncStatus === 'connecting' ? (
+              <span className="flex items-center gap-1 text-amber-700">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                <Cloud className="w-3.5 h-3.5 text-amber-600" />
+                <span className="hidden sm:inline">جاري الاتصال بالسحابة...</span>
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-slate-500">
+                <Cloud className="w-3.5 h-3.5 text-slate-400" />
+                <span className="hidden sm:inline">محلي آمن</span>
+              </span>
+            )}
+
+            {onForceSync && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (isSyncingNow) return;
+                  setIsSyncingNow(true);
+                  setSyncFeedback('جاري نسخ البيانات سحابياً إلى Firestore...');
+                  const ok = await onForceSync();
+                  setIsSyncingNow(false);
+                  if (ok) {
+                    setSyncFeedback('تمت المزامنة السحابية وتأمين كافة البيانات بنجاح ✅');
+                    setTimeout(() => setSyncFeedback(null), 3500);
+                  } else {
+                    setSyncFeedback('تعذر الاتصال بالسحابة، البيانات محفوظة محلياً');
+                    setTimeout(() => setSyncFeedback(null), 3500);
+                  }
+                }}
+                disabled={isSyncingNow}
+                title="مزامنة فورية مع قاعدة بيانات Firestore السحابية"
+                className="p-1 hover:bg-slate-200 rounded-lg text-slate-600 hover:text-sky-700 transition"
+              >
+                <RefreshCw className={`w-3 h-3 ${isSyncingNow ? 'animate-spin text-sky-600' : ''}`} />
+              </button>
+            )}
+          </div>
+
           <button
             id="quick-add-session-top-btn"
             onClick={() => onOpenNewSession()}
@@ -105,7 +171,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           <button
             id="teacher-settings-btn"
             onClick={() => setIsSettingsOpen(true)}
-            title="إعدادات الحساب وكلمة المرور وربط Google"
+            title="إعدادات الحساب وكلمة المرور وقاعدة البيانات السحابية"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-sky-50 text-slate-700 hover:text-sky-800 border border-slate-200 hover:border-sky-200 text-xs font-bold transition shadow-2xs relative"
           >
             <KeyRound className="w-3.5 h-3.5 text-sky-600" />
@@ -126,6 +192,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </button>
         </div>
       </header>
+
+      {/* Sync Feedback Toast */}
+      {syncFeedback && (
+        <div className="bg-sky-600 text-white text-xs font-bold px-4 py-2 text-center animate-in slide-in-from-top duration-200 flex items-center justify-center gap-2">
+          <Cloud className="w-4 h-4 text-sky-200" />
+          <span>{syncFeedback}</span>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <div className="max-w-4xl mx-auto px-4 pt-4 space-y-4">
@@ -501,6 +575,21 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       >
                         تعديل
                       </button>
+
+                      {onDeleteStudent && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm(`هل أنت متأكد من رغبتك في حذف ملف الطالب (${std.name})؟ سيتم حذفه من المنصة وقاعدة البيانات السحابية.`)) {
+                              onDeleteStudent(std.id);
+                            }
+                          }}
+                          title="حذف ملف الطالب"
+                          className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl border border-rose-200 transition"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}

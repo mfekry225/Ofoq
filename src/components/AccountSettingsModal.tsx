@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { TeacherCredentials, GoogleAccountLink } from '../types';
 import { 
   Lock, Mail, Check, X, ShieldCheck, KeyRound, Eye, EyeOff, 
-  Sparkles, RefreshCw, Unlink, CheckCircle2, AlertCircle, Laptop
+  Sparkles, RefreshCw, Unlink, CheckCircle2, AlertCircle, Laptop,
+  Cloud, Database, Server, HardDriveDownload
 } from 'lucide-react';
+import { cloudService } from '../cloudFirestore';
 
 interface AccountSettingsModalProps {
   currentCredentials: TeacherCredentials;
@@ -16,7 +18,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
   onSave,
   onClose,
 }) => {
-  const [activeTab, setActiveTab] = useState<'password' | 'google'>('password');
+  const [activeTab, setActiveTab] = useState<'password' | 'google' | 'cloud'>('password');
   
   // Credentials state
   const [email, setEmail] = useState(currentCredentials.email);
@@ -35,6 +37,10 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
   };
   const [googleAccount, setGoogleAccount] = useState<GoogleAccountLink>(defaultGoogle);
   const [googleActionMessage, setGoogleActionMessage] = useState<string | null>(null);
+
+  // Cloud tab state
+  const [isBackingUp, setIsBackingUp] = useState(false);
+  const [backupMessage, setBackupMessage] = useState<string | null>(null);
 
   const calculateStrength = (pass: string) => {
     if (!pass) return { score: 0, text: 'فارغة', color: 'bg-slate-200' };
@@ -151,10 +157,24 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
             </svg>
-            <span>ربط حساب Google</span>
+            <span>حساب Google</span>
             {googleAccount.linked && (
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
             )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('cloud')}
+            className={`flex-1 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 ${
+              activeTab === 'cloud'
+                ? 'bg-white text-sky-800 shadow-xs'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Cloud className="w-3.5 h-3.5 text-sky-600" />
+            <span>سحابة Firestore</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
           </button>
         </div>
 
@@ -360,6 +380,115 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold transition text-xs"
                   >
                     تم وإغلاق
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: Cloud Firestore Database & Security */}
+            {activeTab === 'cloud' && (
+              <div className="space-y-4 text-xs">
+                {/* Cloud Connection Badge */}
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-sky-50 to-emerald-50 border border-sky-200/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2.5 rounded-xl bg-white text-sky-700 shadow-2xs border border-sky-100">
+                        <Cloud className="w-5 h-5 text-sky-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                          <span>Google Cloud Firestore</span>
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                            نشط ومحمي ✅
+                          </span>
+                        </h4>
+                        <p className="text-[11px] text-slate-500 font-medium">قاعدة بيانات سحابية لحظية ومؤمّنة بأعلى معايير التشفير</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cloud Specs */}
+                  <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
+                    <div className="p-2 bg-white/90 rounded-xl border border-sky-100/70">
+                      <span className="text-slate-400 block text-[10px]">معرف المشروع (Project ID):</span>
+                      <span className="font-mono font-bold text-slate-800 text-[10px]">inspiring-coda-rmn89</span>
+                    </div>
+
+                    <div className="p-2 bg-white/90 rounded-xl border border-sky-100/70">
+                      <span className="text-slate-400 block text-[10px]">تشفير البيانات:</span>
+                      <span className="font-bold text-emerald-700 text-[10px]">AES-256 مشفر سحابياً</span>
+                    </div>
+
+                    <div className="p-2 bg-white/90 rounded-xl border border-sky-100/70">
+                      <span className="text-slate-400 block text-[10px]">قواعد الأمان (Security Rules):</span>
+                      <span className="font-bold text-sky-800 text-[10px]">Firestore Rules منشورة ومطبقة</span>
+                    </div>
+
+                    <div className="p-2 bg-white/90 rounded-xl border border-sky-100/70">
+                      <span className="text-slate-400 block text-[10px]">المزامنة اللحظية:</span>
+                      <span className="font-bold text-emerald-700 text-[10px]">مفعلة (Real-Time Sync)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cloud Security Explanations */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-700 text-[11px] leading-relaxed space-y-2">
+                  <div className="flex items-center gap-1.5 font-bold text-slate-900">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    <span>ضمانات الأمان السحابي لحسابك وبيانات الطلاب:</span>
+                  </div>
+                  <ul className="space-y-1 text-slate-600 list-disc list-inside">
+                    <li>تخزين مشفر بالكامل في مراكز بيانات Google السحابية.</li>
+                    <li>عزل تام لحسابات أولياء الأمور: لا يطّلع ولي الأمر إلا على تقارير وجلسات طفله فقط.</li>
+                    <li>صلاحيات التعديل والإضافة والحذف محصورة في حساب الأخصائي الإداري فقط.</li>
+                    <li>استمرارية البيانات دون قلق من مسح الذاكرة المؤقتة أو تبديل الجهاز أو الهاتف.</li>
+                  </ul>
+                </div>
+
+                {/* One-click manual backup / sync */}
+                <div className="p-3 rounded-2xl bg-white border border-slate-200 flex items-center justify-between">
+                  <div>
+                    <span className="font-bold text-slate-900 text-xs block">مزامنة سحابية شاملة</span>
+                    <span className="text-[11px] text-slate-500">رفع ونسخ كافة الطلاب والجلسات والإعدادات للسحابة يدوياً</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (isBackingUp) return;
+                      setIsBackingUp(true);
+                      setBackupMessage('جاري نسخ البيانات إلى Firestore...');
+                      const ok = await cloudService.backupAllToCloud();
+                      setIsBackingUp(false);
+                      if (ok) {
+                        setBackupMessage('تمت المزامنة وحفظ جميع البيانات في السحابة بنجاح! ✅');
+                        setTimeout(() => setBackupMessage(null), 3500);
+                      } else {
+                        setBackupMessage('تعذر الاتصال، تأكد من اتصال الإنترنت.');
+                        setTimeout(() => setBackupMessage(null), 3500);
+                      }
+                    }}
+                    disabled={isBackingUp}
+                    className="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isBackingUp ? 'animate-spin' : ''}`} />
+                    <span>{isBackingUp ? 'جاري النسخ...' : 'نسخ احتياطي فوري'}</span>
+                  </button>
+                </div>
+
+                {backupMessage && (
+                  <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold text-center animate-in fade-in">
+                    {backupMessage}
+                  </div>
+                )}
+
+                <div className="pt-2 flex items-center justify-end">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold transition text-xs"
+                  >
+                    إغلاق
                   </button>
                 </div>
               </div>

@@ -1,0 +1,83 @@
+{
+  "entities": {
+    "students": {
+      "title": "Students",
+      "description": "Speech therapy and special education students records",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "birthDate": { "type": "string" },
+        "address": { "type": "string" },
+        "diagnosis": { "type": "string" },
+        "grade": { "type": "string" },
+        "subject": { "type": "string" },
+        "parentName": { "type": "string" },
+        "parentPhone": { "type": "string" },
+        "parentUsername": { "type": "string" },
+        "parentPassword": { "type": "string" },
+        "parentAccessCode": { "type": "string" },
+        "currentLevel": { "type": "string" },
+        "levelScore": { "type": "number" },
+        "totalSessions": { "type": "number" },
+        "completedSessions": { "type": "number" },
+        "remainingSessions": { "type": "number" },
+        "status": { "type": "string" },
+        "joinedAt": { "type": "string" },
+        "nextSessionDate": { "type": "string" },
+        "nextSessionTime": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["id", "name", "parentName", "parentPhone", "parentUsername", "parentPassword"]
+    },
+    "sessions": {
+      "title": "Sessions",
+      "description": "Rehabilitation and speech sessions records",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "sessionNumber": { "type": "number" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "durationMinutes": { "type": "number" },
+        "skillsTrained": { "type": "array", "items": { "type": "string" } },
+        "masteryScore": { "type": "number" },
+        "status": { "type": "string" },
+        "notes": { "type": "string" },
+        "homeExercise": { "type": "string" },
+        "nextAppointmentDate": { "type": "string" }
+      },
+      "required": ["id", "studentId", "studentName", "sessionNumber", "date", "status"]
+    },
+    "homeworks": {
+      "title": "Homeworks",
+      "description": "Home language exercises and speech assignments",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "assignedDate": { "type": "string" },
+        "dueDate": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "parentFeedback": { "type": "string" }
+      },
+      "required": ["id", "studentId", "title", "assignedDate"]
+    },
+    "app_settings": {
+      "title": "AppSettings",
+      "description": "Teacher profile and credentials",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "teacherProfile": { "type": "object" },
+        "teacherCredentials": { "type": "object" }
+      },
+      "required": ["id"]
+    }
+  }
+}

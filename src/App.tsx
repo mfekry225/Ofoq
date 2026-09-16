@@ -4,6 +4,7 @@ import {
   EnrollmentLead, CurrentUser, TeacherCredentials 
 } from './types';
 import { storage } from './storage';
+import { cloudService, CloudSyncStatus } from './cloudFirestore';
 import { LoginGateway } from './components/LoginGateway';
 import { TeacherProfileView } from './components/TeacherProfileView';
 import { EnrollmentFormView } from './components/EnrollmentFormView';
@@ -17,7 +18,11 @@ export default function App() {
   // Navigation & View Mode
   const [currentView, setCurrentView] = useState<'login' | 'profile' | 'enroll' | 'dashboard'>('login');
 
-  // App Data State with LocalStorage Persistence
+  // Cloud Sync Status
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<CloudSyncStatus>('connecting');
+  const [cloudStatusMessage, setCloudStatusMessage] = useState<string>('جاري الاتصال بالسحابة...');
+
+  // App Data State with LocalStorage Persistence & Firestore Sync
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => storage.getCurrentUser());
   const [teacherProfile, setTeacherProfile] = useState<TeacherProfile>(() => storage.getTeacherProfile());
   const [teacherCredentials, setTeacherCredentials] = useState<TeacherCredentials>(() => storage.getTeacherCredentials());
@@ -33,7 +38,43 @@ export default function App() {
   const [studentToEdit, setStudentToEdit] = useState<Student | null>(null);
   const [shareSessionData, setShareSessionData] = useState<{ session: SessionRecord; student: Student } | null>(null);
 
-  // Sync with persistent storage
+  // 1. Initialize Real-Time Cloud Firestore Sync
+  useEffect(() => {
+    const unsubscribe = cloudService.subscribeToCloud({
+      onStudentsUpdate: (remoteStudents) => {
+        if (remoteStudents && remoteStudents.length > 0) {
+          setStudents(remoteStudents);
+        }
+      },
+      onSessionsUpdate: (remoteSessions) => {
+        if (remoteSessions && remoteSessions.length > 0) {
+          setSessions(remoteSessions);
+        }
+      },
+      onTimelinesUpdate: (remoteTimelines) => {
+        if (remoteTimelines && remoteTimelines.length > 0) {
+          setTimelines(remoteTimelines);
+        }
+      },
+      onLeadsUpdate: (remoteLeads) => {
+        if (remoteLeads && remoteLeads.length > 0) {
+          setLeads(remoteLeads);
+        }
+      },
+      onSettingsUpdate: (creds, profile) => {
+        if (creds) setTeacherCredentials(creds);
+        if (profile) setTeacherProfile(profile);
+      },
+      onStatusChange: (status, msg) => {
+        setCloudSyncStatus(status);
+        if (msg) setCloudStatusMessage(msg);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // 2. Sync with local storage for instant offline fallback
   useEffect(() => {
     storage.saveCurrentUser(currentUser);
     if (currentUser) {
@@ -93,9 +134,18 @@ export default function App() {
         type: 'achievement'
       };
       setTimelines([newMilestone, ...timelines]);
+      cloudService.saveTimeline(newMilestone);
     }
+    // Save to Cloud Firestore
+    cloudService.saveStudent(savedStudent);
+
     setIsStudentModalOpen(false);
     setStudentToEdit(null);
+  };
+
+  const handleDeleteStudent = (studentId: string) => {
+    setStudents(students.filter((s) => s.id !== studentId));
+    cloudService.deleteStudent(studentId);
   };
 
   // Session Handlers
@@ -107,6 +157,7 @@ export default function App() {
     };
 
     setSessions([newSession, ...sessions]);
+    cloudService.saveSession(newSession);
 
     // Update student's completed sessions count
     const targetStudent = students.find((s) => s.id === newSession.studentId);
@@ -123,6 +174,7 @@ export default function App() {
       };
 
       setStudents(students.map((s) => (s.id === updatedStudent.id ? updatedStudent : s)));
+      cloudService.saveStudent(updatedStudent);
 
       // If milestone worthy
       if (newSession.understandingScore === 5) {
@@ -136,6 +188,7 @@ export default function App() {
           type: 'milestone'
         };
         setTimelines([milestone, ...timelines]);
+        cloudService.saveTimeline(milestone);
       }
 
       // Automatically pop up the share modal for immediate WhatsApp send
@@ -154,6 +207,7 @@ export default function App() {
       createdAt: new Date().toISOString(),
     };
     setLeads([newLead, ...leads]);
+    cloudService.saveLead(newLead);
   };
 
   const handleAcceptLead = (lead: EnrollmentLead) => {
@@ -180,7 +234,16 @@ export default function App() {
     };
 
     setStudents([newStudent, ...students]);
-    setLeads(leads.map((l) => (l.id === lead.id ? { ...l, status: 'converted' } : l)));
+    cloudService.saveStudent(newStudent);
+
+    const updatedLead: EnrollmentLead = { ...lead, status: 'converted' };
+    setLeads(leads.map((l) => (l.id === lead.id ? updatedLead : l)));
+    cloudService.saveLead(updatedLead);
+  };
+
+  const handleUpdateCredentials = (newCreds: TeacherCredentials) => {
+    setTeacherCredentials(newCreds);
+    cloudService.saveTeacherSettings(newCreds, teacherProfile);
   };
 
   // RENDER CURRENT VIEW
@@ -226,7 +289,10 @@ export default function App() {
               sessions={sessions}
               leads={leads}
               teacherCredentials={teacherCredentials}
-              onUpdateCredentials={(newCreds) => setTeacherCredentials(newCreds)}
+              cloudSyncStatus={cloudSyncStatus}
+              cloudStatusMessage={cloudStatusMessage}
+              onForceSync={() => cloudService.backupAllToCloud()}
+              onUpdateCredentials={handleUpdateCredentials}
               onOpenNewSession={(studentId) => {
                 setSessionModalStudentId(studentId);
                 setIsSessionModalOpen(true);
@@ -239,6 +305,7 @@ export default function App() {
                 setStudentToEdit(std);
                 setIsStudentModalOpen(true);
               }}
+              onDeleteStudent={handleDeleteStudent}
               onShareSession={(session, student) => {
                 setShareSessionData({ session, student });
               }}
