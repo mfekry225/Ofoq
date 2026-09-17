@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Student, TeacherProfile, CurrentUser, TeacherCredentials } from '../types';
 import { LogIn, Key, User, Lock, Eye, EyeOff, BookOpen, ShieldAlert, UserPlus, Sparkles, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { storage } from '../storage';
+import { cloudAuth } from '../cloudFirestore';
 
 interface LoginGatewayProps {
   teacherProfile: TeacherProfile;
@@ -24,7 +25,7 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setIsSubmitting(true);
@@ -39,27 +40,50 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
     }
 
     const teacherCreds: TeacherCredentials = storage.getTeacherCredentials();
-    const isTeacherEmail = 
+    const isTeacherTarget = 
       inputUser.toLowerCase() === teacherProfile.email.toLowerCase() ||
       inputUser.toLowerCase() === teacherCreds.email.toLowerCase() ||
       inputUser.toLowerCase() === 'mfekry225@gmail.com' ||
       inputUser.toLowerCase() === 'admin' ||
       inputUser.toLowerCase() === 'teacher';
 
-    const isTeacherPassword = 
-      inputPass === teacherCreds.password ||
-      inputPass === 'Mh882018';
-
     // 1. Check if Teacher Login
-    if (isTeacherEmail && isTeacherPassword) {
-      setTimeout(() => {
+    if (isTeacherTarget) {
+      const emailToAuth = inputUser.includes('@') ? inputUser : 'mfekry225@gmail.com';
+      try {
+        const authResult = await cloudAuth.loginTeacher(emailToAuth, inputPass);
+        if (authResult.success) {
+          setIsSubmitting(false);
+          onLoginSuccess({
+            role: 'teacher',
+            name: teacherProfile.name,
+          });
+          return;
+        }
+
+        // Secondary fallback for local offline mode if credentials match saved profile
+        if (inputPass === teacherCreds.password) {
+          setIsSubmitting(false);
+          onLoginSuccess({
+            role: 'teacher',
+            name: teacherProfile.name,
+          });
+          return;
+        }
+
         setIsSubmitting(false);
-        onLoginSuccess({
-          role: 'teacher',
-          name: teacherProfile.name,
-        });
-      }, 300);
-      return;
+        setErrorMsg(authResult.error || 'كلمة المرور غير صحيحة لحساب الإدارة.');
+        return;
+      } catch {
+        if (inputPass === teacherCreds.password) {
+          setIsSubmitting(false);
+          onLoginSuccess({
+            role: 'teacher',
+            name: teacherProfile.name,
+          });
+          return;
+        }
+      }
     }
 
     // 2. Check if Parent Login (Matching any registered student credentials)
@@ -72,22 +96,20 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
 
       const matchPass = 
         (s.parentPassword && s.parentPassword === inputPass) ||
-        (s.parentAccessCode && s.parentAccessCode.toUpperCase() === inputPass.toUpperCase()) ||
-        inputPass === '123456';
+        (s.parentAccessCode && s.parentAccessCode.toUpperCase() === inputPass.toUpperCase());
 
       return matchUser && matchPass;
     });
 
     if (matchedStudent) {
-      setTimeout(() => {
-        setIsSubmitting(false);
-        onLoginSuccess({
-          role: 'parent',
-          studentId: matchedStudent.id,
-          name: matchedStudent.parentName,
-          phone: matchedStudent.parentPhone,
-        });
-      }, 300);
+      await cloudAuth.loginParent();
+      setIsSubmitting(false);
+      onLoginSuccess({
+        role: 'parent',
+        studentId: matchedStudent.id,
+        name: matchedStudent.parentName,
+        phone: matchedStudent.parentPhone,
+      });
       return;
     }
 

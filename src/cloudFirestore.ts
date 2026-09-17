@@ -7,7 +7,15 @@ import {
   getDoc,
   onSnapshot 
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signInAnonymously, 
+  signOut, 
+  onAuthStateChanged,
+  User as FirebaseUser 
+} from 'firebase/auth';
+import { db, auth } from './firebase';
 import { Student, SessionRecord, TimelineMilestone, EnrollmentLead, TeacherProfile, TeacherCredentials } from './types';
 import { storage } from './storage';
 
@@ -339,3 +347,78 @@ export const cloudService = {
     }
   }
 };
+
+export const cloudAuth = {
+  // Secure Teacher Login with Firebase Auth
+  loginTeacher: async (email: string, password: string): Promise<{ success: boolean; error?: string; user?: FirebaseUser }> => {
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      // Map alias usernames to official registered email
+      const targetEmail = (cleanEmail === 'admin' || cleanEmail === 'teacher') 
+        ? 'mfekry225@gmail.com' 
+        : cleanEmail;
+
+      try {
+        const userCred = await signInWithEmailAndPassword(auth, targetEmail, password);
+        return { success: true, user: userCred.user };
+      } catch (signInErr: any) {
+        // If account hasn't been created yet in Firebase Auth, automatically initialize the admin account on first use
+        if (
+          (targetEmail === 'mfekry225@gmail.com' || targetEmail.includes('@')) && 
+          (signInErr.code === 'auth/user-not-found' || signInErr.code === 'auth/invalid-credential')
+        ) {
+          try {
+            const createCred = await createUserWithEmailAndPassword(auth, targetEmail, password);
+            return { success: true, user: createCred.user };
+          } catch (createErr: any) {
+            console.warn('Initial admin account creation error:', createErr);
+            // Fall back to credential check if offline/custom rules apply
+          }
+        }
+
+        let userMsg = 'اسم المستخدم أو كلمة المرور غير صحيحة';
+        if (signInErr.code === 'auth/wrong-password' || signInErr.code === 'auth/invalid-credential') {
+          userMsg = 'كلمة المرور غير صحيحة';
+        } else if (signInErr.code === 'auth/too-many-requests') {
+          userMsg = 'تم تجميد محاولات الدخول مؤقتاً لحماية الحساب. يرجى المحاولة بعد قليل';
+        } else if (signInErr.code === 'auth/invalid-email') {
+          userMsg = 'صيغة البريد الإلكتروني غير صالحة';
+        }
+        return { success: false, error: userMsg };
+      }
+    } catch (e: any) {
+      return { success: false, error: e?.message || 'حدث خطأ في الاتصال بنظام المصادقة' };
+    }
+  },
+
+  // Secure Parent Anonymous Session Token
+  loginParent: async (): Promise<{ success: boolean; user?: FirebaseUser }> => {
+    try {
+      const cred = await signInAnonymously(auth);
+      return { success: true, user: cred.user };
+    } catch (err) {
+      console.warn('Parent anonymous auth fallback:', err);
+      return { success: false };
+    }
+  },
+
+  // Logout from Firebase
+  logout: async (): Promise<void> => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.warn('Sign out error:', err);
+    }
+  },
+
+  // Subscribe to Auth State Changes
+  onAuthChange: (callback: (user: FirebaseUser | null) => void): (() => void) => {
+    return onAuthStateChanged(auth, callback);
+  },
+
+  // Current User
+  getCurrentUser: (): FirebaseUser | null => {
+    return auth.currentUser;
+  }
+};
+

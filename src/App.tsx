@@ -4,7 +4,7 @@ import {
   EnrollmentLead, CurrentUser, TeacherCredentials 
 } from './types';
 import { storage } from './storage';
-import { cloudService, CloudSyncStatus } from './cloudFirestore';
+import { cloudService, cloudAuth, CloudSyncStatus } from './cloudFirestore';
 import { LoginGateway } from './components/LoginGateway';
 import { TeacherProfileView } from './components/TeacherProfileView';
 import { EnrollmentFormView } from './components/EnrollmentFormView';
@@ -109,6 +109,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    cloudAuth.logout().catch(() => {});
     setCurrentUser(null);
     setCurrentView('login');
   };

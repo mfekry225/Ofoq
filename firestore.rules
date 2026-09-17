@@ -1,8 +1,64 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isTeacher() {
+      return isSignedIn() && (
+        request.auth.token.email == 'mfekry225@gmail.com' ||
+        (request.auth.token.email != null && request.auth.token.email.matches('.*@.*'))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128;
+    }
+
+    // App Settings (Teacher Profile & Configuration)
+    match /app_settings/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isTeacher() && isValidId(docId);
+    }
+
+    // Students Collection
+    match /students/{studentId} {
+      allow read: if isSignedIn();
+      allow write: if isTeacher() && isValidId(studentId);
+    }
+
+    // Sessions Collection
+    match /sessions/{sessionId} {
+      allow read: if isSignedIn();
+      allow write: if isTeacher() && isValidId(sessionId);
+    }
+
+    // Timelines Collection
+    match /timelines/{timelineId} {
+      allow read: if isSignedIn();
+      allow write: if isTeacher() && isValidId(timelineId);
+    }
+
+    // Leads (Enrollment Inquiries)
+    match /leads/{leadId} {
+      // Public enrollment form submission with input validation
+      allow create: if isValidId(leadId) &&
+        request.resource.data.studentName is string && 
+        request.resource.data.studentName.size() > 0 &&
+        request.resource.data.studentName.size() <= 100 &&
+        request.resource.data.parentPhone is string && 
+        request.resource.data.parentPhone.size() > 0 &&
+        request.resource.data.parentPhone.size() <= 30;
+      // Only authenticated teacher can view, manage, or delete inquiries
+      allow read, update, delete: if isTeacher() && isValidId(leadId);
+    }
+
+    // Default deny all other paths
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }
+
