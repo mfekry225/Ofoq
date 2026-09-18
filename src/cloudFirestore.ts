@@ -102,8 +102,13 @@ export const cloudService = {
   saveTeacherSettings: async (creds: TeacherCredentials, profile: TeacherProfile): Promise<void> => {
     try {
       const ref = doc(db, 'app_settings', 'teacher');
+      // Never store plaintext passwords in Firestore!
+      const safeCreds = {
+        email: creds.email,
+        googleAccount: creds.googleAccount,
+      };
       await setDoc(ref, {
-        credentials: sanitize(creds),
+        credentials: sanitize(safeCreds),
         profile: sanitize(profile),
         updatedAt: new Date().toISOString()
       }, { merge: true });

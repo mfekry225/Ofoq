@@ -6,10 +6,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Strict Teacher Check: Only the authorized admin account
     function isTeacher() {
       return isSignedIn() && (
-        request.auth.token.email == 'mfekry225@gmail.com' ||
-        (request.auth.token.email != null && request.auth.token.email.matches('.*@.*'))
+        request.auth.token.email == 'mfekry225@gmail.com'
       );
     }
 
@@ -18,12 +18,14 @@ service cloud.firestore {
     }
 
     // App Settings (Teacher Profile & Configuration)
+    // Only the teacher can read private credentials and settings
     match /app_settings/{docId} {
-      allow read: if isSignedIn();
+      allow read: if isTeacher() || (docId == 'profile');
       allow write: if isTeacher() && isValidId(docId);
     }
 
     // Students Collection
+    // Only the authenticated teacher can write or delete student records
     match /students/{studentId} {
       allow read: if isSignedIn();
       allow write: if isTeacher() && isValidId(studentId);
@@ -61,4 +63,5 @@ service cloud.firestore {
     }
   }
 }
+
 

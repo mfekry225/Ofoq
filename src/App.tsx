@@ -13,8 +13,10 @@ import { ParentPortal } from './components/ParentPortal';
 import { SessionModal } from './components/SessionModal';
 import { StudentModal } from './components/StudentModal';
 import { ShareReportModal } from './components/ShareReportModal';
+import { ThemeProvider } from './themeContext';
+import { ThemeToggle } from './components/ThemeToggle';
 
-export default function App() {
+function MainAppContent() {
   // Navigation & View Mode
   const [currentView, setCurrentView] = useState<'login' | 'profile' | 'enroll' | 'dashboard'>('login');
 
@@ -249,7 +251,7 @@ export default function App() {
 
   // RENDER CURRENT VIEW
   return (
-    <div className="min-h-screen bg-[#f0f7fc] text-slate-800 font-sans antialiased selection:bg-sky-100 selection:text-sky-800">
+    <div className="min-h-screen bg-[#f0f7fc] dark:bg-[#080d1a] text-slate-800 dark:text-slate-100 font-sans antialiased selection:bg-blue-600 selection:text-white transition-colors duration-200 relative">
       {/* 1. Direct Login Gateway View */}
       {currentView === 'login' && (
         <LoginGateway
@@ -376,6 +378,14 @@ export default function App() {
         />
       )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <MainAppContent />
+    </ThemeProvider>
   );
 }
 

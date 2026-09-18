@@ -8,7 +8,8 @@ const STORAGE_KEYS = {
   SESSIONS: 'ofoq_v1_sessions',
   TIMELINES: 'ofoq_v1_timelines',
   LEADS: 'ofoq_v1_leads',
-  AUTH: 'ofoq_v1_current_user'
+  AUTH: 'ofoq_v1_current_user',
+  THEME: 'ofoq_v1_theme'
 };
 
 export const storage = {
@@ -111,6 +112,24 @@ export const storage = {
     } else {
       localStorage.removeItem(STORAGE_KEYS.AUTH);
     }
+  },
+
+  getTheme: (): 'light' | 'dark' => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.THEME);
+      if (saved === 'dark' || saved === 'light') return saved;
+      if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return 'dark';
+      }
+      return 'light';
+    } catch {
+      return 'light';
+    }
+  },
+  saveTheme: (theme: 'light' | 'dark') => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.THEME, theme);
+    } catch {}
   }
 };
 
