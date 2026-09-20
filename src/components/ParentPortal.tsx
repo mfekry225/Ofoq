@@ -3,11 +3,12 @@ import { Student, SessionRecord, TimelineMilestone, TeacherProfile } from '../ty
 import { 
   Award, TrendingUp, Calendar, Clock, Star, BookOpen, Send, Sparkles, 
   MessageCircle, LogOut, CheckCircle2, AlertCircle, FileText, ChevronDown, 
-  CalendarClock, ShieldCheck, Heart, ArrowRight, HeartPulse, MapPin, Baby, GraduationCap
+  CalendarClock, ShieldCheck, Heart, ArrowRight, HeartPulse, MapPin, Baby, GraduationCap, BrainCircuit
 } from 'lucide-react';
 import { getWhatsAppUrl, formatDateArabic } from '../utils';
 import { calculateAgeArabic } from '../studentOptions';
 import { ThemeToggle } from './ThemeToggle';
+import { AssessmentScreeningView } from './AssessmentScreeningView';
 
 interface ParentPortalProps {
   student: Student;
@@ -24,7 +25,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
   teacherProfile,
   onLogout,
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'sessions' | 'timeline'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'sessions' | 'timeline' | 'assessments'>('overview');
 
   // Filter sessions for this student ONLY (Strict Isolation)
   const studentSessions = sessions.filter((s) => s.studentId === student.id);
@@ -42,63 +43,70 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
   );
 
   return (
-    <div id="parent-portal-view" className="min-h-screen bg-[#f0f7fc] dark:bg-[#060a12] text-slate-800 dark:text-slate-200 pb-20 transition-colors duration-200">
+    <div id="parent-portal-view" className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#f0f7fc] dark:bg-[#060a12] text-slate-800 dark:text-slate-200 pb-20 transition-colors duration-200">
       {/* Top Header */}
-      <header className="sticky top-0 z-30 bg-white/95 dark:bg-[#0b1326]/95 backdrop-blur-md border-b border-sky-100 dark:border-blue-900/40 px-4 py-3 flex items-center justify-between shadow-xs transition-colors">
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-sm shadow-blue-600/20">
-            {student.name.slice(0, 1)}
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h1 className="font-bold text-sm text-slate-900 dark:text-white">{student.name}</h1>
-              <span className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 text-[10px] font-bold border border-blue-200 dark:border-blue-800/40">
-                {student.currentLevel}
-              </span>
+      <header className="sticky top-0 z-30 w-full max-w-full bg-white/95 dark:bg-[#0b1326]/95 backdrop-blur-md border-b border-sky-100 dark:border-blue-900/40 px-3 sm:px-4 py-2.5 sm:py-3 shadow-xs transition-colors">
+        <div className="max-w-3xl mx-auto flex items-center justify-between gap-2 w-full">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-base sm:text-lg shadow-sm shadow-blue-600/20">
+              {student.name.slice(0, 1)}
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">أُفق • مرحباً بك يا {student.parentName} في بوابة المتابعة</p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h1 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate max-w-[120px] xs:max-w-[160px] sm:max-w-[200px]">
+                  {student.name}
+                </h1>
+                <span className="hidden xs:inline-block px-1.5 sm:px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 text-[9px] sm:text-[10px] font-bold border border-blue-200 dark:border-blue-800/40 shrink-0">
+                  {student.currentLevel}
+                </span>
+              </div>
+              <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[180px] sm:max-w-none">
+                أُفق • مرحباً بك يا {student.parentName}
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            <ThemeToggle size="sm" />
 
-          <a
-            href={whatsappDirectTeacher}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-800/50 text-emerald-900 dark:text-emerald-200 font-bold text-xs transition"
-          >
-            <MessageCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span className="hidden sm:inline">تواصل مع الأخصائي</span>
-            <span className="sm:hidden">واتساب</span>
-          </a>
+            <a
+              href={whatsappDirectTeacher}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-800/50 text-emerald-900 dark:text-emerald-200 font-bold text-xs transition"
+              title="محادثة واتساب مباشرة مع الأخصائي"
+            >
+              <MessageCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span className="hidden sm:inline">تواصل مع الأخصائي</span>
+              <span className="sm:hidden text-[11px]">واتساب</span>
+            </a>
 
-          <button
-            id="parent-logout-btn"
-            onClick={onLogout}
-            title="تسجيل الخروج"
-            className="p-2 rounded-xl bg-slate-100 dark:bg-[#152244] hover:bg-slate-200 dark:hover:bg-[#1e2f5c] text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white border border-slate-200 dark:border-blue-900/40 transition cursor-pointer"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
+            <button
+              id="parent-logout-btn"
+              onClick={onLogout}
+              title="تسجيل الخروج"
+              className="p-2 rounded-xl bg-slate-100 dark:bg-[#152244] hover:bg-slate-200 dark:hover:bg-[#1e2f5c] text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white border border-slate-200 dark:border-blue-900/40 transition cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </button>
+          </div>
         </div>
       </header>
 
       {/* Main Container */}
-      <div className="max-w-3xl mx-auto px-4 pt-4 space-y-4">
+      <div className="max-w-3xl mx-auto px-3 sm:px-4 pt-4 space-y-4 w-full">
         {/* Next Session Alert Banner */}
         {student.nextSessionDate && (
-          <div className="bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/90 dark:border-blue-900/50 rounded-2xl p-4 flex items-center justify-between shadow-xs transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300">
-                <CalendarClock className="w-5 h-5" />
+          <div className="bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/90 dark:border-blue-900/50 rounded-2xl p-3 sm:p-4 flex items-center justify-between gap-2 shadow-xs transition-colors w-full">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              <div className="p-2 sm:p-2.5 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 shrink-0">
+                <CalendarClock className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <div>
-                <span className="text-[10px] text-blue-800 dark:text-blue-400 font-bold uppercase tracking-wider block">
+              <div className="min-w-0">
+                <span className="text-[9px] sm:text-[10px] text-blue-800 dark:text-blue-400 font-bold uppercase tracking-wider block">
                   موعد الجلسة القادمة
                 </span>
-                <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
+                <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate block">
                   {student.nextSessionDate} • {student.nextSessionTime}
                 </span>
               </div>
@@ -108,16 +116,17 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
               href={whatsappDirectTeacher}
               target="_blank"
               rel="noreferrer"
-              className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-[#0f172a] hover:bg-blue-50 dark:hover:bg-[#152244] text-blue-800 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-900/40 transition shadow-2xs flex items-center gap-1"
+              className="px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-white dark:bg-[#0f172a] hover:bg-blue-50 dark:hover:bg-[#152244] text-blue-800 dark:text-blue-300 text-[11px] sm:text-xs font-bold border border-blue-200 dark:border-blue-900/40 transition shadow-2xs flex items-center gap-1 shrink-0"
             >
               <MessageCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>تنسيق الموعد</span>
+              <span className="hidden xs:inline">تنسيق الموعد</span>
+              <span className="xs:hidden">تنسيق</span>
             </a>
           </div>
         )}
 
         {/* Navigation Tabs (Pill Bar for Mobile) */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 dark:bg-[#0b1326] rounded-2xl border border-slate-200/70 dark:border-blue-900/40 overflow-x-auto">
+        <div className="flex items-center gap-1 sm:gap-1.5 p-1 bg-slate-100/80 dark:bg-[#0b1326] rounded-2xl border border-slate-200/70 dark:border-blue-900/40 overflow-x-auto no-scrollbar w-full">
           <button
             id="tab-parent-overview"
             onClick={() => setActiveTab('overview')}
@@ -154,7 +163,20 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
             }`}
           >
             <TrendingUp className="w-3.5 h-3.5" />
-            <span>الخط الزمني للتطور</span>
+            <span>الخط الزمني</span>
+          </button>
+
+          <button
+            id="tab-parent-assessments"
+            onClick={() => setActiveTab('assessments')}
+            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
+              activeTab === 'assessments'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/20'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <BrainCircuit className="w-3.5 h-3.5" />
+            <span>المقاييس (10 بنود)</span>
           </button>
         </div>
 
@@ -387,6 +409,19 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* TAB 4: RAPID ASSESSMENT SCALES (10 ITEMS EACH) */}
+        {activeTab === 'assessments' && (
+          <div className="space-y-4">
+            <AssessmentScreeningView
+              embeddedMode={true}
+              initialChildName={student.name}
+              initialParentName={student.parentName}
+              teacherPhone={teacherProfile.whatsapp}
+              teacherName={teacherProfile.name}
+            />
           </div>
         )}
       </div>

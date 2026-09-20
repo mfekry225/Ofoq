@@ -11,6 +11,7 @@ interface LoginGatewayProps {
   onLoginSuccess: (user: CurrentUser) => void;
   onNavigateToProfile: () => void;
   onNavigateToEnroll: () => void;
+  onNavigateToAssessments?: () => void;
 }
 
 export const LoginGateway: React.FC<LoginGatewayProps> = ({
@@ -19,6 +20,7 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
   onLoginSuccess,
   onNavigateToProfile,
   onNavigateToEnroll,
+  onNavigateToAssessments,
 }) => {
   const [usernameOrEmail, setUsernameOrEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -120,53 +122,67 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
   };
 
   return (
-    <div id="login-gateway-view" className="min-h-screen bg-[#f0f7fc] dark:bg-[#080d1a] text-slate-800 dark:text-slate-100 flex flex-col justify-between p-4 sm:p-6 relative overflow-hidden transition-colors duration-200">
+    <div id="login-gateway-view" className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#f0f7fc] dark:bg-[#080d1a] text-slate-800 dark:text-slate-100 flex flex-col justify-between p-3 sm:p-6 relative transition-colors duration-200">
       {/* Background subtle ambient glows */}
       <div className="absolute -top-32 -left-32 w-96 h-96 bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute top-1/3 -right-32 w-96 h-96 bg-sky-300/20 dark:bg-indigo-900/15 rounded-full blur-3xl pointer-events-none" />
 
       {/* Top Bar with Brand & Navigation */}
-      <div className="max-w-md w-full mx-auto flex items-center justify-between z-10 pt-2">
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-700 flex items-center justify-center font-black text-white text-lg shadow-md shadow-blue-600/20">
+      <div className="max-w-md w-full mx-auto flex items-center justify-between gap-2 z-10 pt-1 sm:pt-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-700 flex items-center justify-center font-black text-white text-base sm:text-lg shadow-md shadow-blue-600/20 shrink-0">
             أ
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-base font-black text-slate-900 dark:text-white tracking-tight">أُفُق</span>
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border dark:border-blue-800/40">Ofoq</span>
+              <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight">أُفُق</span>
+              <span className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.2 rounded bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40">Ofoq</span>
             </div>
-            <span className="text-[11px] text-blue-700 dark:text-blue-400 font-semibold block">{teacherProfile.name}</span>
+            <span className="text-[10px] sm:text-[11px] text-blue-700 dark:text-blue-400 font-semibold block truncate max-w-[130px] sm:max-w-none">{teacherProfile.name}</span>
           </div>
         </div>
 
         {/* Action Links & Theme Toggle */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           <ThemeToggle size="sm" />
+
+          {onNavigateToAssessments && (
+            <button
+              id="nav-to-assessments-btn"
+              onClick={onNavigateToAssessments}
+              className="px-2 sm:px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[10px] sm:text-[11px] font-bold text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40 shadow-xs flex items-center gap-1 sm:gap-1.5 transition cursor-pointer"
+              title="المقاييس السريعة وفحص مؤشرات الطفل"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+              <span>المقاييس (10 بنود)</span>
+            </button>
+          )}
 
           <button
             id="nav-to-profile-btn"
             onClick={onNavigateToProfile}
-            className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-white dark:bg-[#0f172a] hover:bg-blue-50 dark:hover:bg-[#152244] text-[11px] font-bold text-slate-700 dark:text-slate-200 border border-sky-100 dark:border-blue-900/40 shadow-xs flex items-center gap-1.5 transition"
+            className="px-2 sm:px-3 py-1.5 rounded-xl bg-white dark:bg-[#0f172a] hover:bg-blue-50 dark:hover:bg-[#152244] text-[10px] sm:text-[11px] font-bold text-slate-700 dark:text-slate-200 border border-sky-100 dark:border-blue-900/40 shadow-xs flex items-center gap-1 sm:gap-1.5 transition cursor-pointer"
+            title="نبذة وخبرات الأخصائي"
           >
-            <BookOpen className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-            <span className="hidden sm:inline">نبذة وخبرات</span>
+            <BookOpen className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+            <span className="hidden xs:inline">النبذة</span>
           </button>
 
           <button
             id="nav-to-enroll-btn"
             onClick={onNavigateToEnroll}
-            className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-[11px] font-bold text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40 shadow-xs flex items-center gap-1.5 transition"
+            className="px-2 sm:px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-[10px] sm:text-[11px] font-bold text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40 shadow-xs flex items-center gap-1 sm:gap-1.5 transition cursor-pointer"
+            title="طلب حجز وتقييم"
           >
-            <UserPlus className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-            <span>طلب انضمام</span>
+            <UserPlus className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span>انضمام</span>
           </button>
         </div>
       </div>
 
-      {/* Unified Single Login Card */}
-      <div className="max-w-md w-full mx-auto my-auto py-6 z-10">
-        <div className="bg-white dark:bg-[#0f172a] border border-blue-100/80 dark:border-blue-900/40 rounded-3xl p-6 sm:p-8 shadow-xl shadow-blue-950/5 dark:shadow-blue-950/40 space-y-6 transition-colors">
+      {/* Unified Single Login Card & Quick Screening Card */}
+      <div className="max-w-md w-full mx-auto my-auto py-4 sm:py-6 z-10 space-y-4">
+        <div className="bg-white dark:bg-[#0f172a] border border-blue-100/80 dark:border-blue-900/40 rounded-3xl p-5 sm:p-8 shadow-xl shadow-blue-950/5 dark:shadow-blue-950/40 space-y-5 sm:space-y-6 transition-colors">
           {/* Header */}
           <div className="text-center space-y-1.5">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 mb-1 border border-blue-100 dark:border-blue-900/40">
@@ -255,6 +271,34 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
             </p>
           </div>
         </div>
+
+        {/* Quick Screening Banner for Parents */}
+        {onNavigateToAssessments && (
+          <div className="bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-sky-600/10 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200/80 dark:border-blue-800/40 rounded-3xl p-4 flex items-center justify-between gap-3 shadow-xs transition">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold shrink-0 shadow-sm shadow-blue-600/30">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <span className="font-bold text-xs text-slate-900 dark:text-white block truncate">
+                  فحص مؤشرات الطفل السريع (10 بنود)
+                </span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium block truncate">
+                  تأخر لغة • طيف توحد • صعوبات تعلم • تلعثم
+                </span>
+              </div>
+            </div>
+
+            <button
+              id="gateway-quick-assess-btn"
+              onClick={onNavigateToAssessments}
+              className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shrink-0 shadow-sm shadow-blue-600/20 transition cursor-pointer flex items-center gap-1"
+            >
+              <span>ابدأ الآن</span>
+              <BookOpen className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Footer */}

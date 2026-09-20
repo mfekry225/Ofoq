@@ -10,6 +10,7 @@ import { TeacherProfileView } from './components/TeacherProfileView';
 import { EnrollmentFormView } from './components/EnrollmentFormView';
 import { TeacherDashboard } from './components/TeacherDashboard';
 import { ParentPortal } from './components/ParentPortal';
+import { AssessmentScreeningView } from './components/AssessmentScreeningView';
 import { SessionModal } from './components/SessionModal';
 import { StudentModal } from './components/StudentModal';
 import { ShareReportModal } from './components/ShareReportModal';
@@ -18,7 +19,7 @@ import { ThemeToggle } from './components/ThemeToggle';
 
 function MainAppContent() {
   // Navigation & View Mode
-  const [currentView, setCurrentView] = useState<'login' | 'profile' | 'enroll' | 'dashboard'>('login');
+  const [currentView, setCurrentView] = useState<'login' | 'profile' | 'enroll' | 'dashboard' | 'assessments'>('login');
 
   // Cloud Sync Status
   const [cloudSyncStatus, setCloudSyncStatus] = useState<CloudSyncStatus>('connecting');
@@ -260,6 +261,16 @@ function MainAppContent() {
           onLoginSuccess={handleLoginSuccess}
           onNavigateToProfile={() => setCurrentView('profile')}
           onNavigateToEnroll={() => setCurrentView('enroll')}
+          onNavigateToAssessments={() => setCurrentView('assessments')}
+        />
+      )}
+
+      {/* 1.5. Rapid Assessment Screening View */}
+      {currentView === 'assessments' && (
+        <AssessmentScreeningView
+          onBack={() => setCurrentView('login')}
+          teacherPhone={teacherProfile.whatsapp}
+          teacherName={teacherProfile.name}
         />
       )}
 

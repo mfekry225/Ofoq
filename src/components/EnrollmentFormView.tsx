@@ -60,21 +60,23 @@ export const EnrollmentFormView: React.FC<EnrollmentFormViewProps> = ({
   };
 
   return (
-    <div id="enrollment-form-view" className="min-h-screen bg-[#f0f7fc] text-slate-800 pb-20">
+    <div id="enrollment-form-view" className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#f0f7fc] dark:bg-[#080d1a] text-slate-800 dark:text-slate-100 pb-20 transition-colors duration-200">
       {/* Top Bar */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-sky-100 px-4 py-3 flex items-center justify-between shadow-xs">
-        <button
-          id="enroll-back-btn"
-          onClick={onBack}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-xs font-bold text-sky-800 border border-sky-200 transition"
-        >
-          <ArrowRight className="w-4 h-4" />
-          <span>رجوع للرئيسية</span>
-        </button>
+      <header className="sticky top-0 z-30 w-full max-w-full bg-white/95 dark:bg-[#0b1326]/95 backdrop-blur-md border-b border-sky-100 dark:border-blue-900/40 px-3 sm:px-4 py-2.5 sm:py-3 shadow-xs transition-colors">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-2 w-full">
+          <button
+            id="enroll-back-btn"
+            onClick={onBack}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-xs font-bold text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40 transition cursor-pointer shrink-0"
+          >
+            <ArrowRight className="w-4 h-4" />
+            <span>رجوع</span>
+          </button>
 
-        <div className="text-right">
-          <span className="text-[11px] text-slate-500 block">حجز جلسة ومتابعة مع</span>
-          <span className="text-xs font-bold text-sky-700">{teacherProfile.name}</span>
+          <div className="text-right min-w-0">
+            <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 block truncate">حجز جلسة ومتابعة مع</span>
+            <span className="text-xs sm:text-sm font-bold text-blue-700 dark:text-blue-400 truncate block">{teacherProfile.name}</span>
+          </div>
         </div>
       </header>
 

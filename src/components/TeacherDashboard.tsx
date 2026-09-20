@@ -12,6 +12,7 @@ import { AccountSettingsModal } from './AccountSettingsModal';
 import { calculateAgeArabic } from '../studentOptions';
 import { CloudSyncStatus } from '../cloudFirestore';
 import { ThemeToggle } from './ThemeToggle';
+import { AssessmentScreeningView } from './AssessmentScreeningView';
 
 interface TeacherDashboardProps {
   profile: TeacherProfile;
@@ -50,7 +51,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   onAcceptLead,
   onLogout,
 }) => {
-  const [activeTab, setActiveTab] = useState<'sessions' | 'students' | 'leads'>('sessions');
+  const [activeTab, setActiveTab] = useState<'sessions' | 'students' | 'leads' | 'assessments'>('sessions');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStudentFilter, setSelectedStudentFilter] = useState<string>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -86,211 +87,230 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   };
 
   return (
-    <div id="teacher-dashboard-view" className="min-h-screen bg-[#f0f7fc] dark:bg-[#080d1a] text-slate-800 dark:text-slate-100 pb-20 transition-colors duration-200">
+    <div id="teacher-dashboard-view" className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#f0f7fc] dark:bg-[#080d1a] text-slate-800 dark:text-slate-100 pb-20 transition-colors duration-200">
       {/* Top Header */}
-      <header className="sticky top-0 z-30 bg-white/95 dark:bg-[#0b1326]/95 backdrop-blur-md border-b border-sky-100 dark:border-blue-900/40 px-3 sm:px-4 py-3 flex items-center justify-between shadow-xs">
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-700 flex items-center justify-center text-white font-black text-lg shadow-sm shadow-blue-600/20">
-            أ
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h1 className="font-bold text-sm text-slate-900 dark:text-white">{profile.name}</h1>
-              <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border dark:border-blue-800/40 text-[10px] font-bold">
-                أُفق • لوحة الأخصائي
-              </span>
+      <header className="sticky top-0 z-30 w-full max-w-full bg-white/95 dark:bg-[#0b1326]/95 backdrop-blur-md border-b border-sky-100 dark:border-blue-900/40 px-3 sm:px-4 py-2.5 sm:py-3 shadow-xs transition-colors">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-2 w-full">
+          {/* Brand & Teacher Info */}
+          <div className="flex items-center gap-2 min-w-0 flex-1 sm:flex-initial">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-700 flex items-center justify-center text-white font-black text-base sm:text-lg shadow-sm shadow-blue-600/20">
+              أ
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium hidden sm:block">إدارة الجلسات والطلاب وحسابات أولياء الأمور</p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <h1 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate max-w-[110px] xs:max-w-[150px] sm:max-w-[200px]">
+                  {profile.name}
+                </h1>
+                <span className="hidden xs:inline-block px-1.5 sm:px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40 text-[9px] sm:text-[10px] font-bold shrink-0">
+                  الأخصائي
+                </span>
+              </div>
+              <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium hidden md:block truncate">
+                إدارة الجلسات والطلاب وحسابات أولياء الأمور
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Cloud Firestore Status Badge & One-Click Backup */}
-          <div className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-xl bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-blue-900/40 text-[11px] font-bold">
-            {cloudSyncStatus === 'synced' ? (
-              <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <Cloud className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span className="hidden md:inline">سحابي (Firestore) متصل ومحمي</span>
-                <span className="md:hidden">سحابي ✅</span>
-              </span>
-            ) : cloudSyncStatus === 'syncing' || isSyncingNow ? (
-              <span className="flex items-center gap-1 text-blue-700 dark:text-blue-300">
-                <RefreshCw className="w-3 h-3 text-blue-600 dark:text-blue-400 animate-spin" />
-                <span className="hidden md:inline">جاري المزامنة السحابية...</span>
-                <span className="md:hidden">مزامنة...</span>
-              </span>
-            ) : cloudSyncStatus === 'connecting' ? (
-              <span className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
-                <RefreshCw className="w-3 h-3 text-blue-600 dark:text-blue-400 animate-spin" />
-                <span className="hidden md:inline">جاري الاتصال بالسحابة...</span>
-                <span className="md:hidden">اتصال...</span>
-              </span>
-            ) : (
-              <button
-                type="button"
-                onClick={async () => {
-                  if (onForceSync) {
+          {/* Action Buttons Toolbar */}
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            {/* Cloud Firestore Status Badge */}
+            <div className="flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-xl bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-blue-900/40 text-[10px] sm:text-[11px] font-bold">
+              {cloudSyncStatus === 'synced' ? (
+                <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400" title="قاعدة بيانات Firestore متصلة ومحمية">
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <Cloud className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span className="hidden md:inline">سحابي متصل</span>
+                </span>
+              ) : cloudSyncStatus === 'syncing' || isSyncingNow ? (
+                <span className="flex items-center gap-1 text-blue-700 dark:text-blue-300">
+                  <RefreshCw className="w-3 h-3 text-blue-600 dark:text-blue-400 animate-spin" />
+                  <span className="hidden md:inline">مزامنة...</span>
+                </span>
+              ) : cloudSyncStatus === 'connecting' ? (
+                <span className="flex items-center gap-1 text-blue-700 dark:text-blue-300">
+                  <RefreshCw className="w-3 h-3 text-blue-600 dark:text-blue-400 animate-spin" />
+                  <span className="hidden md:inline">اتصال...</span>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (onForceSync) {
+                      setIsSyncingNow(true);
+                      setSyncFeedback('جاري إعادة الاتصال والمزامنة مع Firestore...');
+                      const ok = await onForceSync();
+                      setIsSyncingNow(false);
+                      setSyncFeedback(ok ? 'تم الاتصال والمزامنة بنجاح ✅' : 'البيانات محفوظة محلياً بأمان');
+                      setTimeout(() => setSyncFeedback(null), 3500);
+                    }
+                  }}
+                  className="flex items-center gap-1 text-slate-600 dark:text-slate-400 hover:text-blue-700 dark:hover:text-blue-300 transition"
+                  title="البيانات محفوظة محلياً - انقر لإعادة الاتصال بالسحابة"
+                >
+                  <Cloud className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="hidden md:inline">محلي (اتصال)</span>
+                </button>
+              )}
+
+              {onForceSync && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (isSyncingNow) return;
                     setIsSyncingNow(true);
-                    setSyncFeedback('جاري إعادة الاتصال والمزامنة مع Firestore...');
+                    setSyncFeedback('جاري نسخ البيانات سحابياً إلى Firestore...');
                     const ok = await onForceSync();
                     setIsSyncingNow(false);
-                    setSyncFeedback(ok ? 'تم الاتصال والمزامنة بنجاح ✅' : 'البيانات محفوظة محلياً بأمان');
-                    setTimeout(() => setSyncFeedback(null), 3500);
-                  }
-                }}
-                className="flex items-center gap-1 text-slate-600 dark:text-slate-400 hover:text-blue-700 dark:hover:text-blue-300 transition"
-                title="البيانات محفوظة محلياً - انقر لإعادة الاتصال بالسحابة"
-              >
-                <Cloud className="w-3.5 h-3.5 text-slate-400" />
-                <span className="hidden md:inline">محلي آمن (إعادة الاتصال)</span>
-                <span className="md:hidden">محلي</span>
-              </button>
-            )}
+                    if (ok) {
+                      setSyncFeedback('تمت المزامنة السحابية وتأمين كافة البيانات بنجاح ✅');
+                      setTimeout(() => setSyncFeedback(null), 3500);
+                    } else {
+                      setSyncFeedback('تعذر الاتصال بالسحابة، البيانات محفوظة محلياً');
+                      setTimeout(() => setSyncFeedback(null), 3500);
+                    }
+                  }}
+                  disabled={isSyncingNow}
+                  title="مزامنة فورية مع قاعدة بيانات Firestore"
+                  className="p-0.5 hover:bg-slate-200 dark:hover:bg-[#152244] rounded text-slate-600 dark:text-slate-400 hover:text-blue-700 dark:hover:text-blue-300 transition"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isSyncingNow ? 'animate-spin text-blue-600 dark:text-blue-400' : ''}`} />
+                </button>
+              )}
+            </div>
 
-            {onForceSync && (
-              <button
-                type="button"
-                onClick={async () => {
-                  if (isSyncingNow) return;
-                  setIsSyncingNow(true);
-                  setSyncFeedback('جاري نسخ البيانات سحابياً إلى Firestore...');
-                  const ok = await onForceSync();
-                  setIsSyncingNow(false);
-                  if (ok) {
-                    setSyncFeedback('تمت المزامنة السحابية وتأمين كافة البيانات بنجاح ✅');
-                    setTimeout(() => setSyncFeedback(null), 3500);
-                  } else {
-                    setSyncFeedback('تعذر الاتصال بالسحابة، البيانات محفوظة محلياً');
-                    setTimeout(() => setSyncFeedback(null), 3500);
-                  }
-                }}
-                disabled={isSyncingNow}
-                title="مزامنة فورية مع قاعدة بيانات Firestore السحابية"
-                className="p-1 hover:bg-slate-200 dark:hover:bg-[#152244] rounded-lg text-slate-600 dark:text-slate-400 hover:text-blue-700 dark:hover:text-blue-300 transition"
-              >
-                <RefreshCw className={`w-3 h-3 ${isSyncingNow ? 'animate-spin text-blue-600 dark:text-blue-400' : ''}`} />
-              </button>
-            )}
+            {/* Theme Toggle Button */}
+            <ThemeToggle size="sm" />
+
+            {/* Add Session Button */}
+            <button
+              id="quick-add-session-top-btn"
+              onClick={() => onOpenNewSession()}
+              className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-sm shadow-blue-600/20 transition cursor-pointer"
+              title="تسجيل جلسة جديدة"
+            >
+              <Plus className="w-3.5 h-3.5 text-white shrink-0" />
+              <span className="hidden sm:inline">جلسة جديدة</span>
+            </button>
+
+            {/* Account Settings Button */}
+            <button
+              id="teacher-settings-btn"
+              onClick={() => setIsSettingsOpen(true)}
+              title="إعدادات الحساب وكلمة المرور وقاعدة البيانات"
+              className="p-2 rounded-xl bg-white dark:bg-[#0f172a] hover:bg-blue-50 dark:hover:bg-[#152244] text-slate-700 dark:text-slate-200 hover:text-blue-800 dark:hover:text-blue-300 border border-slate-200 dark:border-blue-900/40 text-xs font-bold transition shadow-2xs relative"
+            >
+              <KeyRound className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              {teacherCredentials.googleAccount?.linked && (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 absolute -top-0.5 -right-0.5 ring-2 ring-white dark:ring-[#0f172a]" title="حساب Google مربوط" />
+              )}
+            </button>
+
+            {/* Logout Button */}
+            <button
+              id="teacher-logout-btn"
+              onClick={onLogout}
+              title="تسجيل الخروج"
+              className="p-2 rounded-xl bg-slate-100 dark:bg-[#0f172a] hover:bg-slate-200 dark:hover:bg-[#152244] text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white border border-slate-200 dark:border-blue-900/40 transition cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </button>
           </div>
-
-          {/* Theme Toggle Button */}
-          <ThemeToggle size="sm" />
-
-          <button
-            id="quick-add-session-top-btn"
-            onClick={() => onOpenNewSession()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-sm shadow-blue-600/20 transition cursor-pointer"
-          >
-            <Plus className="w-4 h-4 text-white" />
-            <span className="hidden sm:inline">تسجيل جلسة جديدة</span>
-            <span className="sm:hidden">جلسة</span>
-          </button>
-
-          <button
-            id="teacher-settings-btn"
-            onClick={() => setIsSettingsOpen(true)}
-            title="إعدادات الحساب وكلمة المرور وقاعدة البيانات السحابية"
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white dark:bg-[#0f172a] hover:bg-blue-50 dark:hover:bg-[#152244] text-slate-700 dark:text-slate-200 hover:text-blue-800 dark:hover:text-blue-300 border border-slate-200 dark:border-blue-900/40 hover:border-blue-200 text-xs font-bold transition shadow-2xs relative"
-          >
-            <KeyRound className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-            <span className="hidden sm:inline">الإعدادات</span>
-            {teacherCredentials.googleAccount?.linked && (
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 absolute -top-0.5 -right-0.5 ring-2 ring-white dark:ring-[#0f172a]" title="حساب Google مربوط" />
-            )}
-          </button>
-
-          <button
-            id="teacher-logout-btn"
-            onClick={onLogout}
-            title="تسجيل الخروج"
-            className="p-2 rounded-xl bg-slate-100 dark:bg-[#0f172a] hover:bg-slate-200 dark:hover:bg-[#152244] text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white border border-slate-200 dark:border-blue-900/40 transition cursor-pointer"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
         </div>
       </header>
 
       {/* Sync Feedback Toast */}
       {syncFeedback && (
-        <div className="bg-sky-600 text-white text-xs font-bold px-4 py-2 text-center animate-in slide-in-from-top duration-200 flex items-center justify-center gap-2">
-          <Cloud className="w-4 h-4 text-sky-200" />
+        <div className="bg-blue-600 text-white text-xs font-bold px-4 py-2 text-center animate-in slide-in-from-top duration-200 flex items-center justify-center gap-2">
+          <Cloud className="w-4 h-4 text-blue-200" />
           <span>{syncFeedback}</span>
         </div>
       )}
 
       {/* Main Content Area */}
-      <div className="max-w-4xl mx-auto px-4 pt-4 space-y-4">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 pt-4 space-y-4 w-full">
         {/* KPI Quick Stats */}
-        <div className="grid grid-cols-3 gap-2.5">
-          <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-2xl p-3.5 shadow-xs transition-colors">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">إجمالي الطلاب</span>
-            <div className="text-xl font-black text-slate-900 dark:text-white mt-0.5">{students.length} <span className="text-xs font-normal text-slate-400 dark:text-slate-500">طالب</span></div>
+        <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+          <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-2xl p-2.5 sm:p-3.5 shadow-xs transition-colors min-w-0">
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 block truncate">إجمالي الطلاب</span>
+            <div className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-0.5">{students.length} <span className="text-[10px] sm:text-xs font-normal text-slate-400 dark:text-slate-500">طالب</span></div>
           </div>
 
-          <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-2xl p-3.5 shadow-xs transition-colors">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block">الجلسات المنجزة</span>
-            <div className="text-xl font-black text-blue-700 dark:text-blue-400 mt-0.5">{sessions.length} <span className="text-xs font-normal text-slate-400 dark:text-slate-500">جلسة</span></div>
+          <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-2xl p-2.5 sm:p-3.5 shadow-xs transition-colors min-w-0">
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 block truncate">الجلسات المنجزة</span>
+            <div className="text-lg sm:text-xl font-black text-blue-700 dark:text-blue-400 mt-0.5">{sessions.length} <span className="text-[10px] sm:text-xs font-normal text-slate-400 dark:text-slate-500">جلسة</span></div>
           </div>
 
           <div 
             onClick={() => setActiveTab('leads')}
-            className={`bg-white dark:bg-[#0f172a] border rounded-2xl p-3.5 shadow-xs cursor-pointer transition-colors ${
+            className={`bg-white dark:bg-[#0f172a] border rounded-2xl p-2.5 sm:p-3.5 shadow-xs cursor-pointer transition-colors min-w-0 ${
               newLeadsCount > 0 ? 'border-amber-300 dark:border-amber-600 bg-amber-50/50 dark:bg-amber-950/20' : 'border-sky-100 dark:border-blue-900/40'
             }`}
           >
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center justify-between">
-              <span>طلبات تقييم جديدة</span>
-              {newLeadsCount > 0 && <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />}
+            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center justify-between truncate">
+              <span className="truncate">طلبات جديدة</span>
+              {newLeadsCount > 0 && <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 shrink-0 rounded-full bg-amber-500 animate-pulse" />}
             </span>
-            <div className="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5">{newLeadsCount} <span className="text-xs font-normal text-slate-400 dark:text-slate-500">طلب</span></div>
+            <div className="text-lg sm:text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5">{newLeadsCount} <span className="text-[10px] sm:text-xs font-normal text-slate-400 dark:text-slate-500">طلب</span></div>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 dark:bg-[#0b1326] rounded-2xl border border-slate-200/70 dark:border-blue-900/40 overflow-x-auto">
+        <div className="flex items-center gap-1 sm:gap-1.5 p-1 bg-slate-100/80 dark:bg-[#0b1326] rounded-2xl border border-slate-200/70 dark:border-blue-900/40 overflow-x-auto no-scrollbar w-full">
           <button
             id="tab-teacher-sessions"
             onClick={() => setActiveTab('sessions')}
-            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`flex-1 py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap cursor-pointer ${
               activeTab === 'sessions'
                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/20'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-[#152244]'
             }`}
           >
-            <Calendar className="w-3.5 h-3.5" />
-            <span>سجل الجلسات والتقارير ({sessions.length})</span>
+            <Calendar className="w-3.5 h-3.5 shrink-0" />
+            <span>الجلسات ({sessions.length})</span>
           </button>
 
           <button
             id="tab-teacher-students"
             onClick={() => setActiveTab('students')}
-            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`flex-1 py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap cursor-pointer ${
               activeTab === 'students'
                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/20'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-[#152244]'
             }`}
           >
-            <Users className="w-3.5 h-3.5" />
-            <span>قائمة الطلاب وحسابات الأسر ({students.length})</span>
+            <Users className="w-3.5 h-3.5 shrink-0" />
+            <span>الطلاب ({students.length})</span>
           </button>
 
           <button
             id="tab-teacher-leads"
             onClick={() => setActiveTab('leads')}
-            className={`py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap cursor-pointer ${
               activeTab === 'leads'
                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/20'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-[#152244]'
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>طلبات الحجز ({leads.length})</span>
+            <Sparkles className="w-3.5 h-3.5 shrink-0" />
+            <span>الطلبات ({leads.length})</span>
             {newLeadsCount > 0 && (
-              <span className="w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] flex items-center justify-center font-bold">
+              <span className="w-4 h-4 rounded-full bg-amber-500 text-white text-[9px] sm:text-[10px] flex items-center justify-center font-bold">
                 {newLeadsCount}
               </span>
             )}
+          </button>
+
+          <button
+            id="tab-teacher-assessments"
+            onClick={() => setActiveTab('assessments')}
+            className={`py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap cursor-pointer ${
+              activeTab === 'assessments'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/20'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-[#152244]'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5 shrink-0" />
+            <span>المقاييس (10 بنود)</span>
           </button>
         </div>
 
@@ -673,6 +693,17 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* TAB 4: RAPID ASSESSMENT SCALES (10 ITEMS EACH) */}
+        {activeTab === 'assessments' && (
+          <div className="space-y-4">
+            <AssessmentScreeningView
+              embeddedMode={true}
+              teacherPhone={profile.whatsapp}
+              teacherName={profile.name}
+            />
           </div>
         )}
       </div>

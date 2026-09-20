@@ -16,28 +16,30 @@ export const TeacherProfileView: React.FC<TeacherProfileViewProps> = ({
   const whatsappUrl = `https://wa.me/${profile.whatsapp}?text=${encodeURIComponent('السلام عليكم ورحمة الله، أود الاستفسار عن تفاصيل الدروس وحجز جلسة تجريبية.')}`;
 
   return (
-    <div id="teacher-profile-view" className="min-h-screen bg-[#f0f7fc] text-slate-800 pb-20">
+    <div id="teacher-profile-view" className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#f0f7fc] dark:bg-[#080d1a] text-slate-800 dark:text-slate-100 pb-20 transition-colors duration-200">
       {/* Top Bar for Navigation */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-sky-100 px-4 py-3 flex items-center justify-between shadow-xs">
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-sky-600 flex items-center justify-center text-white font-bold text-base shadow-sm shadow-sky-500/20">
-            {profile.name.slice(0, 2)}
+      <header className="sticky top-0 z-30 w-full max-w-full bg-white/95 dark:bg-[#0b1326]/95 backdrop-blur-md border-b border-sky-100 dark:border-blue-900/40 px-3 sm:px-4 py-2.5 sm:py-3 shadow-xs transition-colors">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-2 w-full">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-700 flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-sm shadow-blue-600/20 shrink-0">
+              {profile.name.slice(0, 2)}
+            </div>
+            <div className="min-w-0">
+              <h1 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate max-w-[140px] sm:max-w-none">{profile.name}</h1>
+              <p className="text-[10px] sm:text-xs text-blue-700 dark:text-blue-400 font-semibold truncate">الملف المهني والخبرات</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-bold text-sm text-slate-900">{profile.name}</h1>
-            <p className="text-xs text-sky-700 font-semibold">الملف المهني والخبرات</p>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            id="profile-nav-login-btn"
-            onClick={onNavigateToLogin}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-xs font-bold text-sky-800 border border-sky-200 transition"
-          >
-            <LogIn className="w-3.5 h-3.5 text-sky-600" />
-            <span>تسجيل الدخول</span>
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              id="profile-nav-login-btn"
+              onClick={onNavigateToLogin}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-xs font-bold text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40 transition cursor-pointer"
+            >
+              <LogIn className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <span>تسجيل الدخول</span>
+            </button>
+          </div>
         </div>
       </header>
 
