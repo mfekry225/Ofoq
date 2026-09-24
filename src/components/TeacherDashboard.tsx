@@ -10,7 +10,7 @@ import {
 import { getWhatsAppUrl, formatDateArabic } from '../utils';
 import { AccountSettingsModal } from './AccountSettingsModal';
 import { calculateAgeArabic } from '../studentOptions';
-import { CloudSyncStatus } from '../cloudFirestore';
+import { CloudSyncStatus, cloudAuth, cloudService } from '../cloudFirestore';
 import { ThemeToggle } from './ThemeToggle';
 import { AssessmentScreeningView } from './AssessmentScreeningView';
 
@@ -22,7 +22,7 @@ interface TeacherDashboardProps {
   teacherCredentials: TeacherCredentials;
   cloudSyncStatus?: CloudSyncStatus;
   cloudStatusMessage?: string;
-  onForceSync?: () => Promise<boolean>;
+  onForceSync?: () => Promise<{ success: boolean; count: number; error?: string } | boolean>;
   onUpdateCredentials: (creds: TeacherCredentials) => void;
   onOpenNewSession: (studentId?: string) => void;
   onOpenNewStudent: () => void;
@@ -138,17 +138,20 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                     if (onForceSync) {
                       setIsSyncingNow(true);
                       setSyncFeedback('جاري إعادة الاتصال والمزامنة مع Firestore...');
-                      const ok = await onForceSync();
+                      const res = await onForceSync();
                       setIsSyncingNow(false);
-                      setSyncFeedback(ok ? 'تم الاتصال والمزامنة بنجاح ✅' : 'البيانات محفوظة محلياً بأمان');
-                      setTimeout(() => setSyncFeedback(null), 3500);
+                      const isOk = typeof res === 'boolean' ? res : res.success;
+                      const count = typeof res === 'object' && res.count ? ` (${res.count} عنصر)` : '';
+                      const errorMsg = typeof res === 'object' && res.error ? res.error : 'البيانات محفوظة محلياً';
+                      setSyncFeedback(isOk ? `تم الاتصال وحفظ البيانات سحابياً بنجاح${count} ✅` : errorMsg);
+                      setTimeout(() => setSyncFeedback(null), 4000);
                     }
                   }}
                   className="flex items-center gap-1 text-slate-600 dark:text-slate-400 hover:text-blue-700 dark:hover:text-blue-300 transition"
-                  title="البيانات محفوظة محلياً - انقر لإعادة الاتصال بالسحابة"
+                  title="انقر للمزامنة الفورية مع السحابة"
                 >
                   <Cloud className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="hidden md:inline">محلي (اتصال)</span>
+                  <span className="hidden md:inline">مزامنة السحابة</span>
                 </button>
               )}
 
@@ -159,15 +162,13 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                     if (isSyncingNow) return;
                     setIsSyncingNow(true);
                     setSyncFeedback('جاري نسخ البيانات سحابياً إلى Firestore...');
-                    const ok = await onForceSync();
+                    const res = await onForceSync();
                     setIsSyncingNow(false);
-                    if (ok) {
-                      setSyncFeedback('تمت المزامنة السحابية وتأمين كافة البيانات بنجاح ✅');
-                      setTimeout(() => setSyncFeedback(null), 3500);
-                    } else {
-                      setSyncFeedback('تعذر الاتصال بالسحابة، البيانات محفوظة محلياً');
-                      setTimeout(() => setSyncFeedback(null), 3500);
-                    }
+                    const isOk = typeof res === 'boolean' ? res : res.success;
+                    const count = typeof res === 'object' && res.count ? ` (${res.count} عنصر)` : '';
+                    const errorMsg = typeof res === 'object' && res.error ? res.error : 'تعذر الاتصال بالسحابة، البيانات محفوظة محلياً';
+                    setSyncFeedback(isOk ? `تمت المزامنة السحابية وتأمين البيانات بنجاح${count} ✅` : errorMsg);
+                    setTimeout(() => setSyncFeedback(null), 4000);
                   }}
                   disabled={isSyncingNow}
                   title="مزامنة فورية مع قاعدة بيانات Firestore"
@@ -228,6 +229,53 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
       {/* Main Content Area */}
       <div className="max-w-4xl mx-auto px-3 sm:px-4 pt-4 space-y-4 w-full">
+        {/* Firestore Direct Connection Alert if not authenticated with Google */}
+        {!cloudAuth.getCurrentUser() && (
+          <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-sky-500/10 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200 dark:border-blue-800/60 rounded-2xl p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Cloud className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <span className="font-bold text-slate-900 dark:text-white block">
+                  ربط وحفظ البيانات في قاعدة Firestore السحابية
+                </span>
+                <span className="text-[11px] text-slate-600 dark:text-slate-400 block truncate">
+                  قم بتسجيل الدخول بحساب Google المعتمد (mfekry225@gmail.com) لتفعيل الحفظ السحابي التلقائي
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={async () => {
+                setIsSyncingNow(true);
+                setSyncFeedback('جاري فتح نافذة تسجيل الدخول بحساب Google...');
+                const res = await cloudAuth.loginWithGoogle();
+                if (res.success && res.user) {
+                  setSyncFeedback('تمت المصادقة بنجاح! جاري رفع البيانات إلى Firestore...');
+                  const syncRes = await cloudService.backupAllToCloud();
+                  setSyncFeedback(syncRes.success ? `تم الاتصال وحفظ ${syncRes.count} سجلاً في Firestore بنجاح ✅` : syncRes.error || 'تم الربط بنجاح');
+                } else {
+                  setSyncFeedback(res.error || 'تم إلغاء تسجيل الدخول');
+                }
+                setIsSyncingNow(false);
+                setTimeout(() => setSyncFeedback(null), 5000);
+              }}
+              disabled={isSyncingNow}
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shrink-0 transition flex items-center gap-1.5 shadow-sm shadow-blue-600/20 active:scale-98 cursor-pointer"
+            >
+              <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
+                <path fill="#ffffff" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                <path fill="#ffffff" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.27 21.43 7.35 24 12 24z"/>
+                <path fill="#ffffff" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.03 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+                <path fill="#ffffff" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.27 2.57 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+              </svg>
+              <span>ربط ومزامنة Firestore الآن</span>
+            </button>
+          </div>
+        )}
+
         {/* KPI Quick Stats */}
         <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
           <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-2xl p-2.5 sm:p-3.5 shadow-xs transition-colors min-w-0">

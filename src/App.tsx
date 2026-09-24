@@ -77,6 +77,26 @@ function MainAppContent() {
     return () => unsubscribe();
   }, []);
 
+  // 1.5. Listen for Firebase Auth user state (e.g. Google login persistence)
+  useEffect(() => {
+    const unsubAuth = cloudAuth.onAuthChange((fbUser) => {
+      if (fbUser) {
+        const email = fbUser.email?.toLowerCase();
+        if (email === 'mfekry225@gmail.com') {
+          setCurrentUser((prev) => {
+            if (prev?.role === 'teacher') return prev;
+            return {
+              role: 'teacher',
+              name: fbUser.displayName || teacherProfile.name,
+              email: fbUser.email || undefined,
+            };
+          });
+        }
+      }
+    });
+    return () => unsubAuth();
+  }, [teacherProfile.name]);
+
   // 2. Sync with local storage for instant offline fallback
   useEffect(() => {
     storage.saveCurrentUser(currentUser);
