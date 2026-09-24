@@ -4,6 +4,7 @@ import {
   EnrollmentLead, CurrentUser, TeacherCredentials 
 } from './types';
 import { storage } from './storage';
+import { INITIAL_TEACHER_PROFILE } from './mockData';
 import { cloudService, cloudAuth, CloudSyncStatus } from './cloudFirestore';
 import { LoginGateway } from './components/LoginGateway';
 import { TeacherProfileView } from './components/TeacherProfileView';
@@ -66,7 +67,17 @@ function MainAppContent() {
       },
       onSettingsUpdate: (creds, profile) => {
         if (creds) setTeacherCredentials(creds);
-        if (profile) setTeacherProfile(profile);
+        if (profile) {
+          const isLegacy = profile.title?.includes('برمجيات') || profile.bio?.includes('برمج') || !profile.title?.includes('نطق');
+          if (!isLegacy) {
+            setTeacherProfile({
+              ...INITIAL_TEACHER_PROFILE,
+              ...profile,
+              specialistDuties: profile.specialistDuties?.length ? profile.specialistDuties : INITIAL_TEACHER_PROFILE.specialistDuties,
+              familySupport: profile.familySupport?.length ? profile.familySupport : INITIAL_TEACHER_PROFILE.familySupport,
+            });
+          }
+        }
       },
       onStatusChange: (status, msg) => {
         setCloudSyncStatus(status);
@@ -273,24 +284,13 @@ function MainAppContent() {
   // RENDER CURRENT VIEW
   return (
     <div className="min-h-screen bg-[#f0f7fc] dark:bg-[#080d1a] text-slate-800 dark:text-slate-100 font-sans antialiased selection:bg-blue-600 selection:text-white transition-colors duration-200 relative">
-      {/* 1. Direct Login Gateway View */}
+      {/* 1. Direct Secure Login Gateway View */}
       {currentView === 'login' && (
         <LoginGateway
           teacherProfile={teacherProfile}
           students={students}
           onLoginSuccess={handleLoginSuccess}
           onNavigateToProfile={() => setCurrentView('profile')}
-          onNavigateToEnroll={() => setCurrentView('enroll')}
-          onNavigateToAssessments={() => setCurrentView('assessments')}
-        />
-      )}
-
-      {/* 1.5. Rapid Assessment Screening View */}
-      {currentView === 'assessments' && (
-        <AssessmentScreeningView
-          onBack={() => setCurrentView('login')}
-          teacherPhone={teacherProfile.whatsapp}
-          teacherName={teacherProfile.name}
         />
       )}
 

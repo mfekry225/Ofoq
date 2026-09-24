@@ -14,6 +14,18 @@ export interface TeacherCredentials {
   googleAccount?: GoogleAccountLink;
 }
 
+export interface SpecialistDuty {
+  title: string;
+  description: string;
+  icon?: string;
+}
+
+export interface FamilySupportItem {
+  title: string;
+  description: string;
+  icon?: string;
+}
+
 export interface TeacherProfile {
   name: string;
   title: string;
@@ -27,6 +39,8 @@ export interface TeacherProfile {
   whatsapp: string;
   subjects: string[];
   certifications?: string[];
+  specialistDuties?: SpecialistDuty[];
+  familySupport?: FamilySupportItem[];
   features: {
     title: string;
     description: string;

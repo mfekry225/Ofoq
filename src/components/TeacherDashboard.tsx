@@ -56,6 +56,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [selectedStudentFilter, setSelectedStudentFilter] = useState<string>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<'password' | 'google' | 'cloud'>('password');
   const [isSyncingNow, setIsSyncingNow] = useState(false);
   const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
 
@@ -196,7 +197,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             {/* Account Settings Button */}
             <button
               id="teacher-settings-btn"
-              onClick={() => setIsSettingsOpen(true)}
+              onClick={() => {
+                setSettingsInitialTab('password');
+                setIsSettingsOpen(true);
+              }}
               title="إعدادات الحساب وكلمة المرور وقاعدة البيانات"
               className="p-2 rounded-xl bg-white dark:bg-[#0f172a] hover:bg-blue-50 dark:hover:bg-[#152244] text-slate-700 dark:text-slate-200 hover:text-blue-800 dark:hover:text-blue-300 border border-slate-200 dark:border-blue-900/40 text-xs font-bold transition shadow-2xs relative"
             >
@@ -229,53 +233,6 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
       {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-5 space-y-6 w-full">
-        {/* Firestore Direct Connection Alert if not authenticated with Google */}
-        {!cloudAuth.getCurrentUser() && (
-          <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-sky-500/10 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200 dark:border-blue-800/60 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-xs">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                <Cloud className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <span className="font-bold text-sm text-slate-900 dark:text-white block">
-                  تأمين وحفظ البيانات في قاعدة Firestore السحابية
-                </span>
-                <span className="text-xs text-slate-600 dark:text-slate-400 block truncate">
-                  قم بتسجيل الدخول بحساب Google المعتمد (mfekry225@gmail.com) لتفعيل الحفظ السحابي التلقائي
-                </span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={async () => {
-                setIsSyncingNow(true);
-                setSyncFeedback('جاري فتح نافذة تسجيل الدخول بحساب Google...');
-                const res = await cloudAuth.loginWithGoogle();
-                if (res.success && res.user) {
-                  setSyncFeedback('تمت المصادقة بنجاح! جاري رفع البيانات إلى Firestore...');
-                  const syncRes = await cloudService.backupAllToCloud();
-                  setSyncFeedback(syncRes.success ? `تم الاتصال وحفظ ${syncRes.count} سجلاً في Firestore بنجاح ✅` : syncRes.error || 'تم الربط بنجاح');
-                } else {
-                  setSyncFeedback(res.error || 'تم إلغاء تسجيل الدخول');
-                }
-                setIsSyncingNow(false);
-                setTimeout(() => setSyncFeedback(null), 5000);
-              }}
-              disabled={isSyncingNow}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shrink-0 transition flex items-center gap-2 shadow-sm shadow-blue-600/20 active:scale-98 cursor-pointer"
-            >
-              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                <path fill="#ffffff" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
-                <path fill="#ffffff" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.27 21.43 7.35 24 12 24z"/>
-                <path fill="#ffffff" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.03 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
-                <path fill="#ffffff" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.27 2.57 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-              </svg>
-              <span>ربط ومزامنة Firestore الآن</span>
-            </button>
-          </div>
-        )}
-
         {/* KPI Quick Stats - Responsive 4 Column Desktop */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
           <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-2xl p-3.5 sm:p-5 shadow-xs transition-colors min-w-0">
@@ -770,6 +727,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
       {isSettingsOpen && (
         <AccountSettingsModal
           currentCredentials={teacherCredentials}
+          initialTab={settingsInitialTab}
           onSave={(creds) => {
             onUpdateCredentials(creds);
             setIsSettingsOpen(false);

@@ -2,14 +2,14 @@ import { TeacherProfile, Student, SessionRecord, TimelineMilestone, EnrollmentLe
 import { INITIAL_TEACHER_PROFILE, INITIAL_STUDENTS, INITIAL_SESSIONS, INITIAL_TIMELINES, INITIAL_LEADS, DEFAULT_TEACHER_CREDENTIALS } from './mockData';
 
 const STORAGE_KEYS = {
-  TEACHER_PROFILE: 'ofoq_v1_teacher_profile',
+  TEACHER_PROFILE: 'ofoq_v2_teacher_profile',
   TEACHER_CREDS: 'ofoq_v1_teacher_credentials',
   STUDENTS: 'ofoq_v1_students',
   SESSIONS: 'ofoq_v1_sessions',
   TIMELINES: 'ofoq_v1_timelines',
   LEADS: 'ofoq_v1_leads',
   AUTH: 'ofoq_v1_current_user',
-  THEME: 'ofoq_v1_theme'
+  THEME: 'ofoq_v2_daylight_theme'
 };
 
 export const storage = {
@@ -41,7 +41,22 @@ export const storage = {
   getTeacherProfile: (): TeacherProfile => {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.TEACHER_PROFILE);
-      return data ? JSON.parse(data) : INITIAL_TEACHER_PROFILE;
+      if (data) {
+        const parsed = JSON.parse(data);
+        const hasLegacySoftware = 
+          parsed.title?.includes('برمجيات') || 
+          parsed.bio?.includes('برمج') || 
+          parsed.portfolioUrl?.includes('vercel') ||
+          !parsed.title?.includes('نطق') ||
+          !parsed.specialistDuties ||
+          !parsed.familySupport;
+        if (hasLegacySoftware) {
+          localStorage.setItem(STORAGE_KEYS.TEACHER_PROFILE, JSON.stringify(INITIAL_TEACHER_PROFILE));
+          return INITIAL_TEACHER_PROFILE;
+        }
+        return parsed;
+      }
+      return INITIAL_TEACHER_PROFILE;
     } catch {
       return INITIAL_TEACHER_PROFILE;
     }
@@ -117,11 +132,8 @@ export const storage = {
   getTheme: (): 'light' | 'dark' => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.THEME);
-      if (saved === 'dark' || saved === 'light') return saved;
-      if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        return 'dark';
-      }
-      return 'light';
+      if (saved === 'dark') return 'dark';
+      return 'light'; // Default to daylight / light mode as primary
     } catch {
       return 'light';
     }
