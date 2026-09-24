@@ -89,23 +89,23 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   return (
     <div id="teacher-dashboard-view" className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#f0f7fc] dark:bg-[#080d1a] text-slate-800 dark:text-slate-100 pb-20 transition-colors duration-200">
       {/* Top Header */}
-      <header className="sticky top-0 z-30 w-full max-w-full bg-white/95 dark:bg-[#0b1326]/95 backdrop-blur-md border-b border-sky-100 dark:border-blue-900/40 px-3 sm:px-4 py-2.5 sm:py-3 shadow-xs transition-colors">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-2 w-full">
+      <header className="sticky top-0 z-30 w-full max-w-full bg-white/95 dark:bg-[#0b1326]/95 backdrop-blur-md border-b border-sky-100 dark:border-blue-900/40 px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3.5 shadow-xs transition-colors">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 w-full">
           {/* Brand & Teacher Info */}
-          <div className="flex items-center gap-2 min-w-0 flex-1 sm:flex-initial">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-700 flex items-center justify-center text-white font-black text-base sm:text-lg shadow-sm shadow-blue-600/20">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1 sm:flex-initial">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 shrink-0 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-700 flex items-center justify-center text-white font-black text-base sm:text-xl shadow-sm shadow-blue-600/20">
               أ
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <h1 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate max-w-[110px] xs:max-w-[150px] sm:max-w-[200px]">
+                <h1 className="font-bold text-xs sm:text-base text-slate-900 dark:text-white truncate max-w-[120px] xs:max-w-[180px] sm:max-w-[280px]">
                   {profile.name}
                 </h1>
-                <span className="hidden xs:inline-block px-1.5 sm:px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40 text-[9px] sm:text-[10px] font-bold shrink-0">
+                <span className="hidden xs:inline-block px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40 text-[9px] sm:text-[11px] font-bold shrink-0">
                   الأخصائي
                 </span>
               </div>
-              <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium hidden md:block truncate">
+              <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium hidden sm:block truncate">
                 إدارة الجلسات والطلاب وحسابات أولياء الأمور
               </p>
             </div>
@@ -228,19 +228,19 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
       )}
 
       {/* Main Content Area */}
-      <div className="max-w-4xl mx-auto px-3 sm:px-4 pt-4 space-y-4 w-full">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-5 space-y-6 w-full">
         {/* Firestore Direct Connection Alert if not authenticated with Google */}
         {!cloudAuth.getCurrentUser() && (
-          <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-sky-500/10 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200 dark:border-blue-800/60 rounded-2xl p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-xs">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                <Cloud className="w-4 h-4" />
+          <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-sky-500/10 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200 dark:border-blue-800/60 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-xs">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Cloud className="w-5 h-5" />
               </div>
               <div className="min-w-0">
-                <span className="font-bold text-slate-900 dark:text-white block">
-                  ربط وحفظ البيانات في قاعدة Firestore السحابية
+                <span className="font-bold text-sm text-slate-900 dark:text-white block">
+                  تأمين وحفظ البيانات في قاعدة Firestore السحابية
                 </span>
-                <span className="text-[11px] text-slate-600 dark:text-slate-400 block truncate">
+                <span className="text-xs text-slate-600 dark:text-slate-400 block truncate">
                   قم بتسجيل الدخول بحساب Google المعتمد (mfekry225@gmail.com) لتفعيل الحفظ السحابي التلقائي
                 </span>
               </div>
@@ -263,9 +263,9 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 setTimeout(() => setSyncFeedback(null), 5000);
               }}
               disabled={isSyncingNow}
-              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shrink-0 transition flex items-center gap-1.5 shadow-sm shadow-blue-600/20 active:scale-98 cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shrink-0 transition flex items-center gap-2 shadow-sm shadow-blue-600/20 active:scale-98 cursor-pointer"
             >
-              <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                 <path fill="#ffffff" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
                 <path fill="#ffffff" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.27 21.43 7.35 24 12 24z"/>
                 <path fill="#ffffff" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.03 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
@@ -276,29 +276,39 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
         )}
 
-        {/* KPI Quick Stats */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
-          <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-2xl p-2.5 sm:p-3.5 shadow-xs transition-colors min-w-0">
-            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 block truncate">إجمالي الطلاب</span>
-            <div className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-0.5">{students.length} <span className="text-[10px] sm:text-xs font-normal text-slate-400 dark:text-slate-500">طالب</span></div>
+        {/* KPI Quick Stats - Responsive 4 Column Desktop */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+          <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-2xl p-3.5 sm:p-5 shadow-xs transition-colors min-w-0">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block truncate">إجمالي الطلاب المقيدين</span>
+            <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1">{students.length} <span className="text-xs font-normal text-slate-400 dark:text-slate-500">طالب</span></div>
           </div>
 
-          <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-2xl p-2.5 sm:p-3.5 shadow-xs transition-colors min-w-0">
-            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 block truncate">الجلسات المنجزة</span>
-            <div className="text-lg sm:text-xl font-black text-blue-700 dark:text-blue-400 mt-0.5">{sessions.length} <span className="text-[10px] sm:text-xs font-normal text-slate-400 dark:text-slate-500">جلسة</span></div>
+          <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-2xl p-3.5 sm:p-5 shadow-xs transition-colors min-w-0">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block truncate">الجلسات المنجزة</span>
+            <div className="text-xl sm:text-2xl font-black text-blue-700 dark:text-blue-400 mt-1">{sessions.length} <span className="text-xs font-normal text-slate-400 dark:text-slate-500">جلسة مسجلة</span></div>
+          </div>
+
+          <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-2xl p-3.5 sm:p-5 shadow-xs transition-colors min-w-0">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block truncate">متوسط الاستيعاب</span>
+            <div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
+              {sessions.length > 0 
+                ? (sessions.reduce((acc, s) => acc + (s.understandingScore || 0), 0) / sessions.length).toFixed(1) 
+                : '5.0'} 
+              <span className="text-xs font-normal text-slate-400 dark:text-slate-500"> / 5.0</span>
+            </div>
           </div>
 
           <div 
             onClick={() => setActiveTab('leads')}
-            className={`bg-white dark:bg-[#0f172a] border rounded-2xl p-2.5 sm:p-3.5 shadow-xs cursor-pointer transition-colors min-w-0 ${
+            className={`bg-white dark:bg-[#0f172a] border rounded-2xl p-3.5 sm:p-5 shadow-xs cursor-pointer transition-colors min-w-0 ${
               newLeadsCount > 0 ? 'border-amber-300 dark:border-amber-600 bg-amber-50/50 dark:bg-amber-950/20' : 'border-sky-100 dark:border-blue-900/40'
             }`}
           >
-            <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center justify-between truncate">
-              <span className="truncate">طلبات جديدة</span>
-              {newLeadsCount > 0 && <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 shrink-0 rounded-full bg-amber-500 animate-pulse" />}
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center justify-between truncate">
+              <span className="truncate">طلبات جديدة واردة</span>
+              {newLeadsCount > 0 && <span className="w-2 h-2 shrink-0 rounded-full bg-amber-500 animate-pulse" />}
             </span>
-            <div className="text-lg sm:text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5">{newLeadsCount} <span className="text-[10px] sm:text-xs font-normal text-slate-400 dark:text-slate-500">طلب</span></div>
+            <div className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">{newLeadsCount} <span className="text-xs font-normal text-slate-400 dark:text-slate-500">طلب تقييم</span></div>
           </div>
         </div>
 
@@ -401,18 +411,18 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
             {/* Sessions List */}
             {filteredSessions.length === 0 ? (
-              <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-3xl p-8 text-center space-y-3 shadow-xs transition-colors">
-                <Calendar className="w-10 h-10 text-slate-400 dark:text-slate-500 mx-auto" />
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">لا توجد جلسات مسجلة حالياً</p>
+              <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-3xl p-8 sm:p-12 text-center space-y-3 shadow-xs transition-colors">
+                <Calendar className="w-12 h-12 text-slate-400 dark:text-slate-500 mx-auto" />
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">لا توجد جلسات مسجلة حالياً</p>
                 <button
                   onClick={() => onOpenNewSession()}
-                  className="px-4 py-2 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-bold rounded-xl transition cursor-pointer"
+                  className="px-5 py-2.5 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-bold rounded-xl transition cursor-pointer"
                 >
                   تسجيل جلسة جديدة الآن
                 </button>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5">
                 {filteredSessions.map((session) => {
                   const student = students.find((s) => s.id === session.studentId);
                   return (
@@ -527,7 +537,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5">
                 {filteredStudents.map((std) => (
                   <div
                     key={std.id}
@@ -699,7 +709,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 لا توجد طلبات تقييم جديدة حالياً
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5">
                 {leads.map((lead) => (
                   <div
                     key={lead.id}

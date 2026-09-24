@@ -201,7 +201,7 @@ export const AssessmentScreeningView: React.FC<AssessmentScreeningViewProps> = (
       <div className={`min-h-screen w-full max-w-full overflow-x-hidden ${embeddedMode ? 'p-0' : 'bg-[#f0f7fc] dark:bg-[#060a12] p-3 sm:p-6'} text-slate-800 dark:text-slate-100 transition-colors duration-200`}>
         {/* Top Header */}
         {!embeddedMode && (
-          <header className="max-w-4xl mx-auto flex items-center justify-between gap-2 mb-6 pt-2">
+          <header className="max-w-7xl mx-auto flex items-center justify-between gap-2 mb-6 pt-2">
             {onBack && (
               <button
                 id="assess-back-btn"
@@ -225,7 +225,7 @@ export const AssessmentScreeningView: React.FC<AssessmentScreeningViewProps> = (
           </header>
         )}
 
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="max-w-7xl mx-auto space-y-6">
           {/* Header Banner */}
           <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-sky-700 rounded-3xl p-5 sm:p-8 text-white shadow-xl shadow-blue-900/10 relative overflow-hidden">
             <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" />
@@ -283,8 +283,8 @@ export const AssessmentScreeningView: React.FC<AssessmentScreeningViewProps> = (
             </div>
           </div>
 
-          {/* Scale Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Scale Cards Grid - 4 Columns on xl Desktop */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
             {Object.entries(ASSESSMENT_SCALES).map(([key, scale]) => (
               <div
                 key={key}
