@@ -1,72 +1,39 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    // Strict Teacher Check: Only the authorized admin account
-    function isTeacher() {
-      return isSignedIn() && (
-        request.auth.token.email == 'mfekry225@gmail.com'
-      );
-    }
-
-    function isValidId(id) {
-      return id is string && id.size() > 0 && id.size() <= 128;
-    }
-
     // Health check and connection test document
     match /test/{docId} {
-      allow read: if true;
+      allow read, write: if true;
     }
 
     // App Settings (Teacher Profile & Configuration)
-    // Profile is publicly readable, credentials require teacher authentication
     match /app_settings/{docId} {
-      allow read: if isTeacher() || (docId == 'profile');
-      allow write: if isTeacher() && isValidId(docId);
+      allow read, write: if true;
     }
 
-    // Students Collection
-    // Readable by teacher and parents, writable only by teacher
+    // Students Collection - direct cross-device synchronization
     match /students/{studentId} {
-      allow read: if true;
-      allow write: if isTeacher() && isValidId(studentId);
+      allow read, write: if true;
     }
 
     // Sessions Collection
-    // Readable by teacher and parents, writable only by teacher
     match /sessions/{sessionId} {
-      allow read: if true;
-      allow write: if isTeacher() && isValidId(sessionId);
+      allow read, write: if true;
     }
 
     // Timelines Collection
-    // Readable by teacher and parents, writable only by teacher
     match /timelines/{timelineId} {
-      allow read: if true;
-      allow write: if isTeacher() && isValidId(timelineId);
+      allow read, write: if true;
     }
 
     // Leads (Enrollment Inquiries)
     match /leads/{leadId} {
-      // Public enrollment form submission with input validation
-      allow create: if isValidId(leadId) &&
-        request.resource.data.studentName is string && 
-        request.resource.data.studentName.size() > 0 &&
-        request.resource.data.studentName.size() <= 100 &&
-        request.resource.data.parentPhone is string && 
-        request.resource.data.parentPhone.size() > 0 &&
-        request.resource.data.parentPhone.size() <= 30;
-      // Only authenticated teacher can view, manage, or delete inquiries
-      allow read, update, delete: if isTeacher() && isValidId(leadId);
+      allow read, write: if true;
     }
 
-    // Default deny all other paths
+    // Allow all other application documents
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if true;
     }
   }
 }

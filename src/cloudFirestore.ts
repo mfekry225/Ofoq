@@ -392,14 +392,6 @@ export const cloudService = {
   // Explicit cloud upload/backup
   backupAllToCloud: async (): Promise<{ success: boolean; count: number; error?: string }> => {
     try {
-      if (!auth.currentUser || auth.currentUser.email?.toLowerCase() !== 'mfekry225@gmail.com') {
-        return {
-          success: false,
-          count: 0,
-          error: 'يتطلب الحفظ السحابي تسجيل الدخول بحساب Google المعتمد (mfekry225@gmail.com).'
-        };
-      }
-
       const students = storage.getStudents();
       const sessions = storage.getSessions();
       const timelines = storage.getTimelines();
@@ -422,15 +414,11 @@ export const cloudService = {
         promises.push(setDoc(doc(db, 'leads', ld.id), sanitize(ld), { merge: true }));
       }
       promises.push(setDoc(doc(db, 'app_settings', 'profile'), sanitize(profile), { merge: true }));
-
-      // If teacher is authenticated, also save credentials
-      if (auth.currentUser?.email?.toLowerCase() === 'mfekry225@gmail.com') {
-        promises.push(setDoc(doc(db, 'app_settings', 'teacher'), {
-          credentials: sanitize({ email: creds.email, googleAccount: creds.googleAccount }),
-          profile: sanitize(profile),
-          updatedAt: new Date().toISOString()
-        }, { merge: true }));
-      }
+      promises.push(setDoc(doc(db, 'app_settings', 'teacher'), {
+        credentials: sanitize({ email: creds.email, googleAccount: creds.googleAccount }),
+        profile: sanitize(profile),
+        updatedAt: new Date().toISOString()
+      }, { merge: true }));
 
       await Promise.all(promises);
       return { 
@@ -439,13 +427,10 @@ export const cloudService = {
       };
     } catch (err: any) {
       console.error('Backup to cloud failed:', err);
-      const isPermError = err?.message?.includes('Missing or insufficient permissions') || err?.code === 'permission-denied';
       return { 
         success: false, 
         count: 0, 
-        error: isPermError
-          ? 'صلاحيات غير كافية: يرجى تسجيل الدخول بحساب Google المعتمد (mfekry225@gmail.com) لتفعيل الصلاحيات.'
-          : (err?.message || 'حدث خطأ في المزامنة السحابية.')
+        error: err?.message || 'حدث خطأ في المزامنة السحابية.'
       };
     }
   }

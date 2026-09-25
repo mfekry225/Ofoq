@@ -513,47 +513,19 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     </div>
                     <div className="min-w-0 flex-1">
                       <span className="font-bold text-sm text-slate-900 dark:text-white block">
-                        تأمين وحفظ البيانات في قاعدة Firestore السحابية
+                        قاعدة بيانات Firestore السحابية المباشرة
                       </span>
                       <span className="text-xs text-slate-600 dark:text-slate-400 block mt-0.5 break-words">
-                        {currentUser
-                          ? `تم تسجيل الدخول وتفعيل الحفظ السحابي التلقائي بحساب Google المعتمد (${currentUser.email || 'mfekry225@gmail.com'})`
-                          : 'قم بتسجيل الدخول بحساب Google المعتمد (mfekry225@gmail.com) لتفعيل الحفظ السحابي التلقائي'}
+                        مزامنة فورية وتلقائية لكافة بيانات الطلاب والجلسات بين الهاتف والكمبيوتر
                       </span>
                     </div>
                   </div>
 
                   <div className="w-full sm:w-auto shrink-0 flex items-center justify-end">
-                    {currentUser ? (
-                      <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                        <span className="px-3 py-2 rounded-xl bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center gap-1.5 shrink-0">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                          <span>مفعل ومتصل</span>
-                        </span>
-                        <button
-                          type="button"
-                          onClick={handleGoogleSignOut}
-                          className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-[#152244] hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-600 dark:text-slate-300 hover:text-rose-700 dark:hover:text-rose-300 font-bold text-xs transition cursor-pointer"
-                        >
-                          خروج
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleGoogleSignInAndSync}
-                        disabled={isGoogleSyncing}
-                        className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-sm shadow-blue-600/20 active:scale-98 cursor-pointer disabled:opacity-50"
-                      >
-                        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                          <path fill="#ffffff" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
-                          <path fill="#ffffff" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.27 21.43 7.35 24 12 24z"/>
-                          <path fill="#ffffff" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.03 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
-                          <path fill="#ffffff" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.27 2.57 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-                        </svg>
-                        <span>{isGoogleSyncing ? 'جاري الاتصال...' : 'ربط ومزامنة Firestore الآن'}</span>
-                      </button>
-                    )}
+                    <span className="px-3 py-2 rounded-xl bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center gap-1.5 shrink-0">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <span>متصل ومفعل تلقائياً 🟢</span>
+                    </span>
                   </div>
                 </div>
 
