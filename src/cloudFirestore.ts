@@ -392,6 +392,14 @@ export const cloudService = {
   // Explicit cloud upload/backup
   backupAllToCloud: async (): Promise<{ success: boolean; count: number; error?: string }> => {
     try {
+      if (!auth.currentUser || auth.currentUser.email?.toLowerCase() !== 'mfekry225@gmail.com') {
+        return {
+          success: false,
+          count: 0,
+          error: 'يتطلب الحفظ السحابي تسجيل الدخول بحساب Google المعتمد (mfekry225@gmail.com).'
+        };
+      }
+
       const students = storage.getStudents();
       const sessions = storage.getSessions();
       const timelines = storage.getTimelines();
@@ -431,10 +439,13 @@ export const cloudService = {
       };
     } catch (err: any) {
       console.error('Backup to cloud failed:', err);
+      const isPermError = err?.message?.includes('Missing or insufficient permissions') || err?.code === 'permission-denied';
       return { 
         success: false, 
         count: 0, 
-        error: err?.message || 'حدث خطأ في المزامنة السحابية. يرجى التأكد من تسجيل الدخول بحساب المعلم.' 
+        error: isPermError
+          ? 'صلاحيات غير كافية: يرجى تسجيل الدخول بحساب Google المعتمد (mfekry225@gmail.com) لتفعيل الصلاحيات.'
+          : (err?.message || 'حدث خطأ في المزامنة السحابية.')
       };
     }
   }
