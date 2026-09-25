@@ -235,9 +235,9 @@ export const StudentModal: React.FC<StudentModalProps> = ({
               <span>البيانات الأساسية والشخصية للطالب</span>
             </h4>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3.5">
               {/* Name */}
-              <div className="md:col-span-2">
+              <div className="md:col-span-2 lg:col-span-6">
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
                   اسم الطالب / المستفيد <span className="text-orange-600 dark:text-orange-400">*</span>
                 </label>
@@ -253,7 +253,7 @@ export const StudentModal: React.FC<StudentModalProps> = ({
               </div>
 
               {/* Birth Date */}
-              <div>
+              <div className="md:col-span-1 lg:col-span-3">
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                   <span>تاريخ الميلاد</span>
@@ -268,13 +268,13 @@ export const StudentModal: React.FC<StudentModalProps> = ({
                 {calculatedAge && (
                   <div className="mt-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold flex items-center gap-1">
                     <Baby className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span>العمر المحسوب: {calculatedAge}</span>
+                    <span>العمر: {calculatedAge}</span>
                   </div>
                 )}
               </div>
 
               {/* Address */}
-              <div>
+              <div className="md:col-span-1 lg:col-span-3">
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-rose-500" />
                   <span>العنوان / المنطقة السكنية</span>
@@ -282,7 +282,7 @@ export const StudentModal: React.FC<StudentModalProps> = ({
                 <input
                   id="input-std-address"
                   type="text"
-                  placeholder="مثال: المنامة - الرفاع، مجمع 921"
+                  placeholder="مثال: المنامة - الرفاع"
                   value={formData.address || ''}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   className="w-full bg-slate-50 dark:bg-[#080d1a] border border-slate-200 dark:border-blue-900/50 rounded-xl px-3 py-2 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-[#0b1326] transition"
@@ -446,7 +446,7 @@ export const StudentModal: React.FC<StudentModalProps> = ({
           </div>
 
           {/* SECTION 4: Sessions Allocation */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2 border-t border-slate-100 dark:border-blue-900/30">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-2 border-t border-slate-100 dark:border-blue-900/30">
             <div>
               <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">إجمالي الجلسات بالباقة</label>
               <input
@@ -455,7 +455,7 @@ export const StudentModal: React.FC<StudentModalProps> = ({
                 min="1"
                 value={formData.totalSessions}
                 onChange={(e) => setFormData({ ...formData, totalSessions: Number(e.target.value) })}
-                className="w-full bg-slate-50 dark:bg-[#080d1a] border border-slate-200 dark:border-blue-900/50 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-hidden focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-[#0b1326] transition"
+                className="w-full bg-slate-50 dark:bg-[#080d1a] border border-slate-200 dark:border-blue-900/50 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-hidden focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-[#0b1326] transition font-bold"
               />
             </div>
 
@@ -467,8 +467,16 @@ export const StudentModal: React.FC<StudentModalProps> = ({
                 min="0"
                 value={formData.completedSessions}
                 onChange={(e) => setFormData({ ...formData, completedSessions: Number(e.target.value) })}
-                className="w-full bg-slate-50 dark:bg-[#080d1a] border border-slate-200 dark:border-blue-900/50 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-hidden focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-[#0b1326] transition"
+                className="w-full bg-slate-50 dark:bg-[#080d1a] border border-slate-200 dark:border-blue-900/50 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:outline-hidden focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-[#0b1326] transition font-bold"
               />
+            </div>
+
+            <div>
+              <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">الجلسات المتبقية (تلقائي)</label>
+              <div className="w-full bg-slate-100 dark:bg-[#0b1326] border border-slate-200 dark:border-blue-900/40 rounded-xl px-3 py-2 text-blue-700 dark:text-blue-300 font-bold flex items-center justify-between">
+                <span>{Math.max(0, (Number(formData.totalSessions) || 12) - (Number(formData.completedSessions) || 0))}</span>
+                <span className="text-[10px] text-slate-400 font-normal">جلسة باقية</span>
+              </div>
             </div>
           </div>
 

@@ -223,21 +223,21 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
       {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-5 space-y-6 w-full">
-        {/* KPI Quick Stats - Responsive 4 Column Desktop */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+        {/* KPI Quick Stats - Responsive 2-Col Mobile, 2-Col Tablet, 4-Col Desktop Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
           <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-2xl p-3.5 sm:p-5 shadow-xs transition-colors min-w-0">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block truncate">إجمالي الطلاب المقيدين</span>
-            <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1">{students.length} <span className="text-xs font-normal text-slate-400 dark:text-slate-500">طالب</span></div>
+            <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1 tabular-nums">{students.length} <span className="text-xs font-normal text-slate-400 dark:text-slate-500">طالب</span></div>
           </div>
 
           <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-2xl p-3.5 sm:p-5 shadow-xs transition-colors min-w-0">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block truncate">الجلسات المنجزة</span>
-            <div className="text-xl sm:text-2xl font-black text-blue-700 dark:text-blue-400 mt-1">{sessions.length} <span className="text-xs font-normal text-slate-400 dark:text-slate-500">جلسة مسجلة</span></div>
+            <div className="text-xl sm:text-2xl font-black text-blue-700 dark:text-blue-400 mt-1 tabular-nums">{sessions.length} <span className="text-xs font-normal text-slate-400 dark:text-slate-500">جلسة مسجلة</span></div>
           </div>
 
           <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-2xl p-3.5 sm:p-5 shadow-xs transition-colors min-w-0">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block truncate">متوسط الاستيعاب</span>
-            <div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
+            <div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 tabular-nums">
               {sessions.length > 0 
                 ? (sessions.reduce((acc, s) => acc + (s.understandingScore || 0), 0) / sessions.length).toFixed(1) 
                 : '5.0'} 
@@ -255,16 +255,16 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               <span className="truncate">طلبات جديدة واردة</span>
               {newLeadsCount > 0 && <span className="w-2 h-2 shrink-0 rounded-full bg-amber-500 animate-pulse" />}
             </span>
-            <div className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">{newLeadsCount} <span className="text-xs font-normal text-slate-400 dark:text-slate-500">طلب تقييم</span></div>
+            <div className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 mt-1 tabular-nums">{newLeadsCount} <span className="text-xs font-normal text-slate-400 dark:text-slate-500">طلب تقييم</span></div>
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex items-center gap-1 sm:gap-1.5 p-1 bg-slate-100/80 dark:bg-[#0b1326] rounded-2xl border border-slate-200/70 dark:border-blue-900/40 overflow-x-auto no-scrollbar w-full">
+        {/* Navigation Tabs - Responsive Grid System */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 p-1.5 bg-slate-100/80 dark:bg-[#0b1326] rounded-2xl border border-slate-200/70 dark:border-blue-900/40 w-full">
           <button
             id="tab-teacher-sessions"
             onClick={() => setActiveTab('sessions')}
-            className={`flex-1 py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
               activeTab === 'sessions'
                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/20'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-[#152244]'
@@ -277,7 +277,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           <button
             id="tab-teacher-students"
             onClick={() => setActiveTab('students')}
-            className={`flex-1 py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
               activeTab === 'students'
                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/20'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-[#152244]'
@@ -290,7 +290,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           <button
             id="tab-teacher-leads"
             onClick={() => setActiveTab('leads')}
-            className={`py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
               activeTab === 'leads'
                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/20'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-[#152244]'
@@ -308,7 +308,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           <button
             id="tab-teacher-assessments"
             onClick={() => setActiveTab('assessments')}
-            className={`py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap cursor-pointer ${
+            className={`py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
               activeTab === 'assessments'
                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/20'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-[#152244]'
@@ -321,11 +321,11 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
         {/* TAB 1: SESSIONS RECORD & WHATSAPP SHARING */}
         {activeTab === 'sessions' && (
-          <div className="space-y-3">
-            {/* Filters Bar */}
-            <div className="flex flex-col sm:flex-row items-center gap-2 bg-white dark:bg-[#0f172a] p-2.5 rounded-2xl border border-sky-100 dark:border-blue-900/40 shadow-xs transition-colors">
-              <div className="relative flex-1 w-full">
-                <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3 top-2.5" />
+          <div className="space-y-4">
+            {/* Filters Bar Responsive Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 bg-white dark:bg-[#0f172a] p-3 rounded-2xl border border-sky-100 dark:border-blue-900/40 shadow-xs transition-colors items-center">
+              <div className="relative sm:col-span-6 md:col-span-6 lg:col-span-7">
+                <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3 top-2.5 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="بحث باسم الطالب أو موضوع الجلسة..."
@@ -335,28 +335,32 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 />
               </div>
 
-              <select
-                value={selectedStudentFilter}
-                onChange={(e) => setSelectedStudentFilter(e.target.value)}
-                className="w-full sm:w-auto bg-slate-50 dark:bg-[#080d1a] border border-slate-200 dark:border-blue-900/50 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-[#0b1326]"
-              >
-                <option value="all">جميع الطلاب</option>
-                {students.map((std) => (
-                  <option key={std.id} value={std.id}>{std.name}</option>
-                ))}
-              </select>
+              <div className="sm:col-span-3 md:col-span-3 lg:col-span-3">
+                <select
+                  value={selectedStudentFilter}
+                  onChange={(e) => setSelectedStudentFilter(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-[#080d1a] border border-slate-200 dark:border-blue-900/50 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-[#0b1326]"
+                >
+                  <option value="all">جميع الطلاب</option>
+                  {students.map((std) => (
+                    <option key={std.id} value={std.id}>{std.name}</option>
+                  ))}
+                </select>
+              </div>
 
-              <button
-                id="add-session-btn-filterbar"
-                onClick={() => onOpenNewSession()}
-                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-sm shadow-blue-600/20 flex items-center justify-center gap-1.5 shrink-0 transition cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5 text-white" />
-                <span>تسجيل جلسة</span>
-              </button>
+              <div className="sm:col-span-3 md:col-span-3 lg:col-span-2">
+                <button
+                  id="add-session-btn-filterbar"
+                  onClick={() => onOpenNewSession()}
+                  className="w-full px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-sm shadow-blue-600/20 flex items-center justify-center gap-1.5 shrink-0 transition cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5 text-white" />
+                  <span>تسجيل جلسة</span>
+                </button>
+              </div>
             </div>
 
-            {/* Sessions List */}
+            {/* Sessions Responsive Multi-Column Grid */}
             {filteredSessions.length === 0 ? (
               <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-3xl p-8 sm:p-12 text-center space-y-3 shadow-xs transition-colors">
                 <Calendar className="w-12 h-12 text-slate-400 dark:text-slate-500 mx-auto" />
@@ -369,63 +373,65 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
                 {filteredSessions.map((session) => {
                   const student = students.find((s) => s.id === session.studentId);
                   return (
                     <div
                       key={session.id}
-                      className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 hover:border-blue-300 dark:hover:border-blue-700 rounded-2xl p-4 sm:p-5 transition shadow-xs space-y-3"
+                      className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 hover:border-blue-300 dark:hover:border-blue-700 rounded-2xl p-4 sm:p-5 transition shadow-xs flex flex-col justify-between space-y-3.5"
                     >
-                      {/* Top Header of Card */}
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-sm text-slate-900 dark:text-white">{session.studentName}</span>
-                            <span className="px-2.5 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 text-[11px] font-bold border border-blue-200 dark:border-blue-800/40">
-                              جلسة #{session.sessionNumber}
-                            </span>
-                            <span className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                              <Clock className="w-3 h-3 text-slate-400 dark:text-slate-500" />
-                              {session.date} • {session.time}
-                            </span>
+                      <div className="space-y-3">
+                        {/* Top Header of Card */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-bold text-sm text-slate-900 dark:text-white">{session.studentName}</span>
+                              <span className="px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 text-[10px] sm:text-[11px] font-bold border border-blue-200 dark:border-blue-800/40">
+                                جلسة #{session.sessionNumber}
+                              </span>
+                              <span className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-slate-400 dark:text-slate-500" />
+                                {session.date} • {session.time}
+                              </span>
+                            </div>
+                            <h2 className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 mt-1.5 leading-snug">
+                              {session.topic}
+                            </h2>
                           </div>
-                          <h2 className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 mt-1.5">
-                            {session.topic}
-                          </h2>
+
+                          {/* WhatsApp Report Share CTA Button */}
+                          {student && (
+                            <button
+                              id={`share-report-btn-${session.id}`}
+                              onClick={() => onShareSession(session, student)}
+                              className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm shadow-blue-600/20 shrink-0 transition transform active:scale-95 cursor-pointer"
+                            >
+                              <Share2 className="w-3.5 h-3.5 text-white" />
+                              <span className="hidden sm:inline">تقرير ولي الأمر</span>
+                              <span className="sm:hidden">تقرير</span>
+                            </button>
+                          )}
                         </div>
 
-                        {/* WhatsApp Report Share CTA Button */}
-                        {student && (
-                          <button
-                            id={`share-report-btn-${session.id}`}
-                            onClick={() => onShareSession(session, student)}
-                            className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm shadow-blue-600/20 shrink-0 transition transform active:scale-95 cursor-pointer"
-                          >
-                            <Share2 className="w-3.5 h-3.5 text-white" />
-                            <span className="hidden sm:inline">تقرير ولي الأمر</span>
-                            <span className="sm:hidden">إرسال</span>
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Activities Chips */}
-                      <div className="flex flex-wrap gap-1.5">
-                        {session.activities.map((act) => (
-                          <span
-                            key={act.id}
-                            className="px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-[#080d1a] border border-slate-200 dark:border-blue-900/40 text-[11px] font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5"
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
-                            {act.title}
-                          </span>
-                        ))}
+                        {/* Activities Chips */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {session.activities.map((act) => (
+                            <span
+                              key={act.id}
+                              className="px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-[#080d1a] border border-slate-200 dark:border-blue-900/40 text-[11px] font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5"
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+                              {act.title}
+                            </span>
+                          ))}
+                        </div>
                       </div>
 
                       {/* Summary Metrics & Plan */}
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2.5 border-t border-slate-100 dark:border-blue-900/30 text-[11px]">
                         <div className="bg-blue-50/50 dark:bg-blue-950/30 p-2.5 rounded-xl border border-blue-100 dark:border-blue-900/40">
-                          <span className="text-slate-500 dark:text-slate-400 block text-[10px] font-bold">مستوى الاستيعاب والتجاوب</span>
+                          <span className="text-slate-500 dark:text-slate-400 block text-[10px] font-bold">مستوى الاستيعاب</span>
                           <span className="font-bold text-blue-700 dark:text-blue-300">{'⭐'.repeat(session.understandingScore)} ({session.understandingScore}/5)</span>
                         </div>
 
@@ -449,13 +455,13 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
         {/* TAB 2: STUDENTS LIST & PARENT ACCOUNT MANAGEMENT */}
         {activeTab === 'students' && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between bg-white dark:bg-[#0f172a] p-2.5 rounded-2xl border border-sky-100 dark:border-blue-900/40 shadow-xs transition-colors">
-              <div className="relative flex-1 w-full max-w-xs">
-                <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3 top-2.5" />
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-[#0f172a] p-3 rounded-2xl border border-sky-100 dark:border-blue-900/40 shadow-xs transition-colors">
+              <div className="relative w-full sm:max-w-md">
+                <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3 top-2.5 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="بحث عن طالب أو ولي أمر..."
+                  placeholder="بحث عن طالب، ولي أمر، مسار تأهيلي..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-[#080d1a] border border-slate-200 dark:border-blue-900/50 rounded-xl pr-9 pl-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-[#0b1326]"
@@ -465,7 +471,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               <button
                 id="add-student-btn-list"
                 onClick={onOpenNewStudent}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-sm shadow-blue-600/20 flex items-center gap-1.5 transition cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-sm shadow-blue-600/20 flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0"
               >
                 <Plus className="w-3.5 h-3.5 text-white" />
                 <span>إضافة طالب جديد</span>
@@ -473,27 +479,27 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             </div>
 
             {filteredStudents.length === 0 ? (
-              <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-3xl p-8 text-center space-y-3 shadow-xs transition-colors">
-                <Users className="w-10 h-10 text-slate-400 dark:text-slate-500 mx-auto" />
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">لا يوجد طلاب مسجلون حالياً</p>
+              <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-3xl p-8 sm:p-12 text-center space-y-3 shadow-xs transition-colors">
+                <Users className="w-12 h-12 text-slate-400 dark:text-slate-500 mx-auto" />
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">لا يوجد طلاب مسجلون حالياً</p>
                 <button
                   onClick={onOpenNewStudent}
-                  className="px-4 py-2 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-bold rounded-xl transition cursor-pointer"
+                  className="px-5 py-2.5 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-bold rounded-xl transition cursor-pointer"
                 >
                   إضافة أول طالب وتوليد حساب ولي الأمر
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
                 {filteredStudents.map((std) => (
                   <div
                     key={std.id}
-                    className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-2xl p-4 sm:p-5 space-y-3 shadow-xs flex flex-col justify-between transition-colors"
+                    className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 hover:border-blue-300 dark:hover:border-blue-700 rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-xs flex flex-col justify-between transition-colors"
                   >
-                    <div>
+                    <div className="space-y-3">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <h3 className="font-bold text-sm text-slate-900 dark:text-white">{std.name}</h3>
+                          <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">{std.name}</h3>
                           <p className="text-xs text-slate-500 dark:text-slate-400">{std.grade} • {std.subject}</p>
                         </div>
                         <span className="px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 text-[10px] font-bold border border-blue-200 dark:border-blue-800/40">
@@ -501,8 +507,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                         </span>
                       </div>
 
-                      {/* Clinical Badges & Info: Diagnosis, Age, Address */}
-                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                      {/* Clinical Badges & Info */}
+                      <div className="flex flex-wrap items-center gap-1.5">
                         {std.diagnosis && (
                           <span className="px-2 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/50 text-[10px] font-bold flex items-center gap-1">
                             <HeartPulse className="w-3 h-3 text-rose-500" />
@@ -525,37 +531,37 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                         )}
                       </div>
 
-                      {/* Dedicated Parent Account Credentials Card */}
-                      <div className="mt-3 p-3 bg-blue-50/40 dark:bg-[#0b1326] rounded-xl border border-blue-200/80 dark:border-blue-900/50 space-y-2 text-xs">
+                      {/* Parent Account Credentials Card */}
+                      <div className="p-3 bg-blue-50/40 dark:bg-[#0b1326] rounded-xl border border-blue-200/80 dark:border-blue-900/50 space-y-2 text-xs">
                         <div className="flex items-center justify-between text-slate-700 dark:text-slate-300">
-                          <span>ولي الأمر: <strong className="text-slate-900 dark:text-white">{std.parentName}</strong></span>
+                          <span className="truncate">ولي الأمر: <strong className="text-slate-900 dark:text-white">{std.parentName}</strong></span>
                           <a
                             href={`https://wa.me/${std.parentPhone.replace(/[^0-9]/g, '')}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-emerald-700 dark:text-emerald-400 font-bold hover:underline flex items-center gap-1 text-[11px]"
+                            className="text-emerald-700 dark:text-emerald-400 font-bold hover:underline flex items-center gap-1 text-[11px] shrink-0"
                           >
                             <Phone className="w-3 h-3" />
                             <span>{std.parentPhone}</span>
                           </a>
                         </div>
 
-                        {/* Account Access Details */}
-                        <div className="p-2 bg-white dark:bg-[#080d1a] rounded-lg border border-blue-100 dark:border-blue-900/40 space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <span className="text-slate-500 dark:text-slate-400 text-[11px] flex items-center gap-1">
-                              <User className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                              <span>اسم المستخدم:</span>
+                        {/* Account Access Details Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 bg-white dark:bg-[#080d1a] rounded-lg border border-blue-100 dark:border-blue-900/40">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-slate-500 dark:text-slate-400 text-[10px] flex items-center gap-1">
+                              <User className="w-3 h-3 text-blue-600 dark:text-blue-400 shrink-0" />
+                              <span>المستخدم:</span>
                             </span>
-                            <span className="font-mono font-bold text-blue-900 dark:text-blue-300 text-[11px]">
+                            <span className="font-mono font-bold text-blue-900 dark:text-blue-300 text-[11px] truncate">
                               {std.parentUsername || std.parentPhone}
                             </span>
                           </div>
 
-                          <div className="flex items-center justify-between">
-                            <span className="text-slate-500 dark:text-slate-400 text-[11px] flex items-center gap-1">
-                              <Lock className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                              <span>كلمة المرور:</span>
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-slate-500 dark:text-slate-400 text-[10px] flex items-center gap-1">
+                              <Lock className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                              <span>السر:</span>
                             </span>
                             <span className="font-mono font-bold text-amber-700 dark:text-amber-300 text-[11px]">
                               {std.parentPassword || '123456'}
@@ -563,12 +569,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                           </div>
                         </div>
 
-                        {/* Quick Action to Share or Copy credentials */}
-                        <div className="flex items-center gap-1.5 pt-1">
+                        {/* Actions Grid for Copy/WhatsApp */}
+                        <div className="grid grid-cols-2 gap-2 pt-1">
                           <button
                             type="button"
                             onClick={() => handleCopyCredentials(std)}
-                            className="flex-1 py-1 px-2 rounded-lg bg-white dark:bg-[#0f172a] hover:bg-slate-50 dark:hover:bg-[#152244] text-slate-700 dark:text-slate-200 text-[10px] font-bold border border-slate-200 dark:border-blue-900/40 flex items-center justify-center gap-1 transition cursor-pointer"
+                            className="py-1.5 px-2 rounded-lg bg-white dark:bg-[#0f172a] hover:bg-slate-50 dark:hover:bg-[#152244] text-slate-700 dark:text-slate-200 text-[10px] font-bold border border-slate-200 dark:border-blue-900/40 flex items-center justify-center gap-1 transition cursor-pointer"
                           >
                             {copiedId === std.id ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-slate-500" />}
                             <span>{copiedId === std.id ? 'تم النسخ' : 'نسخ الحساب'}</span>
@@ -577,7 +583,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                           <button
                             type="button"
                             onClick={() => handleSendCredentialsWhatsApp(std)}
-                            className="flex-1 py-1 px-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold border border-emerald-200 dark:border-emerald-900/40 flex items-center justify-center gap-1 transition cursor-pointer"
+                            className="py-1.5 px-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold border border-emerald-200 dark:border-emerald-900/40 flex items-center justify-center gap-1 transition cursor-pointer"
                           >
                             <Send className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                             <span>إرسال بالواتساب</span>
@@ -586,30 +592,30 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       </div>
 
                       {/* Progress Bar */}
-                      <div className="mt-3 space-y-1.5 text-xs">
+                      <div className="space-y-1.5 text-xs">
                         <div className="flex justify-between text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                           <span>الجلسات المنجزة: {std.completedSessions} من {std.totalSessions}</span>
-                          <span className="text-blue-700 dark:text-blue-400 font-bold">
+                          <span className="text-blue-700 dark:text-blue-400 font-bold tabular-nums">
                             {std.totalSessions > 0 ? Math.round((std.completedSessions / std.totalSessions) * 100) : 0}%
                           </span>
                         </div>
                         <div className="h-2 w-full bg-slate-100 dark:bg-[#080d1a] rounded-full overflow-hidden border border-slate-200/60 dark:border-blue-900/40">
                           <div
-                            className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full"
+                            className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full transition-all"
                             style={{ width: `${std.totalSessions > 0 ? Math.min(100, (std.completedSessions / std.totalSessions) * 100) : 0}%` }}
                           />
                         </div>
                       </div>
                     </div>
 
-                    {/* Actions */}
+                    {/* Bottom Actions Grid */}
                     <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-blue-900/30">
                       <button
                         onClick={() => onOpenNewSession(std.id)}
                         className="flex-1 py-2 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1 cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" />
-                        <span>تسجيل جلسة</span>
+                        <span>جلسة</span>
                       </button>
 
                       <button
@@ -643,27 +649,27 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
         {/* TAB 3: ENROLLMENT LEADS / REQUESTS */}
         {activeTab === 'leads' && (
-          <div className="space-y-3">
-            <div className="bg-white dark:bg-[#0f172a] p-3.5 rounded-2xl border border-sky-100 dark:border-blue-900/40 shadow-xs flex items-center justify-between transition-colors">
+          <div className="space-y-4">
+            <div className="bg-white dark:bg-[#0f172a] p-4 rounded-2xl border border-sky-100 dark:border-blue-900/40 shadow-xs flex items-center justify-between transition-colors">
               <div>
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white">طلبات التقييم والانضمام الواردة</h3>
+                <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">طلبات التقييم والانضمام الواردة</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">يمكنك تحويل أي طلب إلى ملف طالب نشط وتوليد حسابه بضغطة واحدة</p>
               </div>
             </div>
 
             {leads.length === 0 ? (
-              <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-3xl p-8 text-center text-xs text-slate-500 dark:text-slate-400 transition-colors">
+              <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-3xl p-8 sm:p-12 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400 transition-colors">
                 لا توجد طلبات تقييم جديدة حالياً
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
                 {leads.map((lead) => (
                   <div
                     key={lead.id}
-                    className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors"
+                    className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between gap-4 transition-colors"
                   >
-                    <div className="space-y-1.5 text-xs">
-                      <div className="flex items-center gap-2">
+                    <div className="space-y-2 text-xs">
+                      <div className="flex items-center justify-between gap-2">
                         <span className="font-bold text-sm text-slate-900 dark:text-white">{lead.studentName} ({lead.studentAge})</span>
                         <span className="px-2.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 text-[10px] font-bold border border-amber-200 dark:border-amber-900/50">
                           {lead.subjectNeeded}
@@ -675,23 +681,23 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       <p className="text-slate-500 dark:text-slate-400 text-[11px]">الفترة المفضلة: {lead.preferredTime} {lead.notes && `• ملاحظات: ${lead.notes}`}</p>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-blue-900/30">
                       <a
                         href={getWhatsAppUrl(lead.phone, `مرحباً بك يا ${lead.parentName}، يسعدنا تواصلكم بخصوص تدريب الطالب ${lead.studentName}.`)}
                         target="_blank"
                         rel="noreferrer"
-                        className="px-3.5 py-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-900 dark:text-emerald-200 text-xs font-bold border border-emerald-300 dark:border-emerald-800/50 flex items-center gap-1.5 transition cursor-pointer"
+                        className="py-2.5 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-900 dark:text-emerald-200 text-xs font-bold border border-emerald-300 dark:border-emerald-800/50 flex items-center justify-center gap-1.5 transition cursor-pointer"
                       >
                         <MessageCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                        <span>محادثة واتساب</span>
+                        <span>واتساب</span>
                       </a>
 
                       <button
                         onClick={() => onAcceptLead(lead)}
-                        className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-bold shadow-sm shadow-blue-600/20 hover:from-blue-700 hover:to-indigo-700 flex items-center gap-1.5 transition cursor-pointer"
+                        className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-bold shadow-sm shadow-blue-600/20 hover:from-blue-700 hover:to-indigo-700 flex items-center justify-center gap-1.5 transition cursor-pointer"
                       >
                         <Check className="w-3.5 h-3.5 text-white" />
-                        <span>قبول وتفعيل كطالب</span>
+                        <span>قبول كطالب</span>
                       </button>
                     </div>
                   </div>
