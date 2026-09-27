@@ -178,6 +178,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
           </div>
           <button
             onClick={onClose}
+            aria-label="إغلاق إعدادات الحساب"
             className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#152244] transition cursor-pointer"
           >
             <X className="w-4 h-4" />
