@@ -122,6 +122,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
 
           <button
             onClick={onClose}
+            aria-label="إغلاق النافذة"
             className="p-2 rounded-xl bg-slate-100 dark:bg-[#152244] hover:bg-slate-200 dark:hover:bg-[#1e2f5c] text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -359,6 +360,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
                         <button
                           type="button"
                           onClick={() => handleRemoveActivity(act.id)}
+                          aria-label="حذف النشاط"
                           className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
