@@ -42,7 +42,9 @@ export const ShareReportModal: React.FC<ShareReportModalProps> = ({
           </div>
 
           <button
+            type="button"
             onClick={onClose}
+            aria-label="إغلاق النافذة"
             className="p-2 rounded-xl bg-slate-100 dark:bg-[#152244] hover:bg-slate-200 dark:hover:bg-[#1e2f5c] text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition cursor-pointer"
           >
             <X className="w-5 h-5" />
