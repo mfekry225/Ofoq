@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SessionRecord, Student } from '../types';
 import { X, MessageCircle, Copy, Check, Star, Share2 } from 'lucide-react';
 import { generateParentWhatsAppMessage, getWhatsAppUrl } from '../utils';
@@ -20,6 +20,16 @@ export const ShareReportModal: React.FC<ShareReportModalProps> = ({
   const reportMessage = generateParentWhatsAppMessage(session, student, teacherName);
   const whatsappUrl = getWhatsAppUrl(student.parentPhone, reportMessage);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const handleCopy = () => {
     navigator.clipboard.writeText(reportMessage);
     setCopied(true);
@@ -27,7 +37,12 @@ export const ShareReportModal: React.FC<ShareReportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 lg:p-6 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="share-report-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 lg:p-6 bg-slate-900/60 backdrop-blur-xs overflow-y-auto"
+    >
       <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-3xl w-full max-w-lg md:max-w-2xl lg:max-w-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden my-auto animate-in zoom-in-95 duration-200 text-slate-800 dark:text-slate-100 transition-colors">
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-sky-100 dark:border-blue-900/40 flex items-center justify-between bg-gradient-to-r from-blue-50/70 via-white to-indigo-50/40 dark:from-[#0b1326] dark:via-[#0f172a] dark:to-[#152244] shrink-0">
@@ -36,7 +51,7 @@ export const ShareReportModal: React.FC<ShareReportModalProps> = ({
               <Share2 className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">تقرير الجلسة لولي الأمر</h3>
+              <h3 id="share-report-title" className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">تقرير الجلسة لولي الأمر</h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">مستفيد: {student.name} • ولي الأمر: {student.parentName}</p>
             </div>
           </div>
