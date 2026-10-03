@@ -361,7 +361,9 @@ export const SessionModal: React.FC<SessionModalProps> = ({
                         <button
                           type="button"
                           onClick={() => handleRemoveActivity(act.id)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition cursor-pointer"
+                          aria-label={`حذف نشاط ${act.title}`}
+                          title={`حذف نشاط ${act.title}`}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 focus-visible:ring-2 focus-visible:ring-rose-500 transition cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
