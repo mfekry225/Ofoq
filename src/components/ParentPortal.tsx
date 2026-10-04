@@ -83,9 +83,11 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
 
             <button
               id="parent-logout-btn"
+              type="button"
               onClick={onLogout}
               title="تسجيل الخروج"
-              className="p-2 sm:p-2.5 rounded-xl bg-slate-100 dark:bg-[#152244] hover:bg-slate-200 dark:hover:bg-[#1e2f5c] text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white border border-slate-200 dark:border-blue-900/40 transition cursor-pointer"
+              aria-label="تسجيل الخروج"
+              className="p-2 sm:p-2.5 rounded-xl bg-slate-100 dark:bg-[#152244] hover:bg-slate-200 dark:hover:bg-[#1e2f5c] text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white border border-slate-200 dark:border-blue-900/40 transition cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
             >
               <LogOut className="w-4 h-4" />
             </button>
