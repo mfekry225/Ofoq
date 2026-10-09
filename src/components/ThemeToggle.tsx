@@ -32,7 +32,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
       id="theme-mode-toggle"
       type="button"
       onClick={toggleTheme}
-      className={`relative inline-flex items-center justify-center font-bold rounded-xl transition-all duration-200 cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500/40 select-none ${
+      className={`relative inline-flex items-center justify-center font-bold rounded-xl transition-all duration-200 cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 select-none ${
         isDark
           ? 'bg-slate-900/90 hover:bg-slate-800 text-blue-300 border border-blue-900/60 shadow-xs shadow-blue-950/40'
           : 'bg-white/90 hover:bg-slate-50 text-slate-700 hover:text-blue-700 border border-slate-200/80 shadow-xs shadow-slate-200/50'
