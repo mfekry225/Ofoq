@@ -167,6 +167,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 onClick={handleDirectSync}
                 disabled={isSyncingNow}
                 title="مزامنة فورية مع قاعدة بيانات Firestore"
+                aria-label="مزامنة فورية مع قاعدة البيانات السحابية"
                 className="p-0.5 hover:bg-slate-200 dark:hover:bg-[#152244] rounded text-slate-600 dark:text-slate-400 hover:text-blue-700 dark:hover:text-blue-300 transition cursor-pointer"
               >
                 <RefreshCw className={`w-3 h-3 ${isSyncingNow ? 'animate-spin text-blue-600 dark:text-blue-400' : ''}`} />
@@ -190,12 +191,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             {/* Account Settings Button */}
             <button
               id="teacher-settings-btn"
+              type="button"
               onClick={() => {
                 setSettingsInitialTab('password');
                 setIsSettingsOpen(true);
               }}
               title="إعدادات الحساب وكلمة المرور وقاعدة البيانات"
-              className="p-2 rounded-xl bg-white dark:bg-[#0f172a] hover:bg-blue-50 dark:hover:bg-[#152244] text-slate-700 dark:text-slate-200 hover:text-blue-800 dark:hover:text-blue-300 border border-slate-200 dark:border-blue-900/40 text-xs font-bold transition shadow-2xs relative"
+              aria-label="إعدادات حساب المعلم والأمان"
+              className="p-2 rounded-xl bg-white dark:bg-[#0f172a] hover:bg-blue-50 dark:hover:bg-[#152244] text-slate-700 dark:text-slate-200 hover:text-blue-800 dark:hover:text-blue-300 border border-slate-200 dark:border-blue-900/40 text-xs font-bold transition shadow-2xs relative cursor-pointer"
             >
               <KeyRound className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
             </button>
@@ -203,8 +206,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             {/* Logout Button */}
             <button
               id="teacher-logout-btn"
+              type="button"
               onClick={onLogout}
               title="تسجيل الخروج"
+              aria-label="تسجيل الخروج من المنصة"
               className="p-2 rounded-xl bg-slate-100 dark:bg-[#0f172a] hover:bg-slate-200 dark:hover:bg-[#152244] text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white border border-slate-200 dark:border-blue-900/40 transition cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -634,6 +639,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                             }
                           }}
                           title="حذف ملف الطالب"
+                          aria-label="حذف ملف الطالب"
                           className="p-2 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 rounded-xl border border-rose-200 dark:border-rose-900/40 transition cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
