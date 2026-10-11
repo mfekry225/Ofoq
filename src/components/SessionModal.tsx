@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Student, SessionRecord, ActivityItem } from '../types';
 import { X, CheckCircle2, Clock, Star, Sparkles, User, Plus, Trash2, Calendar, FileText } from 'lucide-react';
 
@@ -49,6 +49,16 @@ export const SessionModal: React.FC<SessionModalProps> = ({
   const [teacherNoteToParent, setTeacherNoteToParent] = useState<string>('ما شاء الله، أداء رائع ومبشر اليوم، ونشكركم على حرصكم ومتابعتكم المستمرة.');
 
   const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const selectedStudent = students.find((s) => s.id === selectedStudentId);
 
@@ -105,7 +115,12 @@ export const SessionModal: React.FC<SessionModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 lg:p-6 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-3xl w-full max-w-xl md:max-w-3xl lg:max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden my-auto animate-in zoom-in-95 duration-200 text-slate-800 dark:text-slate-100 transition-colors">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="session-modal-title"
+        className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-3xl w-full max-w-xl md:max-w-3xl lg:max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden my-auto animate-in zoom-in-95 duration-200 text-slate-800 dark:text-slate-100 transition-colors"
+      >
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-sky-100 dark:border-blue-900/40 flex items-center justify-between bg-gradient-to-r from-blue-50/70 via-white to-indigo-50/40 dark:from-[#0b1326] dark:via-[#0f172a] dark:to-[#152244] shrink-0">
           <div className="flex items-center gap-3">
@@ -113,7 +128,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
               <Calendar className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
+              <h3 id="session-modal-title" className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
                 تسجيل وتوثيق جلسة تدريبية جديدة
               </h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">توثيق الأنشطة ومستوى الاستيعاب وإرسال تقرير فوري لولي الأمر</p>
