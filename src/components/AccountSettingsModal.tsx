@@ -62,6 +62,16 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
     return () => unsub();
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const calculateStrength = (pass: string) => {
     if (!pass) return { score: 0, text: 'فارغة', color: 'bg-slate-200 dark:bg-slate-700' };
     if (pass.length < 6) return { score: 1, text: 'قصيرة جداً', color: 'bg-rose-400' };
@@ -163,7 +173,12 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 lg:p-6 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-3xl p-6 sm:p-7 w-full max-w-lg md:max-w-2xl shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200 text-slate-800 dark:text-slate-100 transition-colors">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="account-settings-modal-title"
+        className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-3xl p-6 sm:p-7 w-full max-w-lg md:max-w-2xl shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200 text-slate-800 dark:text-slate-100 transition-colors"
+      >
         
         {/* Header */}
         <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-blue-900/30">
@@ -172,7 +187,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
               <KeyRound className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">إعدادات الأمان وحساب المعلم</h3>
+              <h3 id="account-settings-modal-title" className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">إعدادات الأمان وحساب المعلم</h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">تغيير كلمة المرور وإدارة ربط حساب Google بالمشروع</p>
             </div>
           </div>
