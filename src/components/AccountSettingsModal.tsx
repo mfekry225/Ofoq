@@ -296,6 +296,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
                       className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 absolute left-3 top-2.5 transition cursor-pointer"
                       title={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
                     >
