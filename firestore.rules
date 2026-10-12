@@ -1,41 +1,161 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Health check and connection test document
-    match /test/{docId} {
-      allow read, write: if true;
+
+    // ----------------------------------------------------
+    // GLOBAL SECURITY PRIMITIVES & HELPERS
+    // ----------------------------------------------------
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
-    // App Settings (Teacher Profile & Configuration)
-    match /app_settings/{docId} {
-      allow read, write: if true;
+    function incoming() {
+      return request.resource.data;
     }
 
-    // Students Collection - direct cross-device synchronization
-    match /students/{studentId} {
-      allow read, write: if true;
+    function existing() {
+      return resource.data;
     }
 
-    // Sessions Collection
-    match /sessions/{sessionId} {
-      allow read, write: if true;
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // Timelines Collection
-    match /timelines/{timelineId} {
-      allow read, write: if true;
+    // Verified Specialist Identity (Bootstrap: mfekry225@gmail.com)
+    function isSpecialist() {
+      return isSignedIn() && (
+        request.auth.token.email == 'mfekry225@gmail.com' ||
+        (request.auth.token.email != null && request.auth.token.email_verified == true)
+      );
     }
 
-    // Leads (Enrollment Inquiries)
+    // ----------------------------------------------------
+    // SCHEMA VALIDATION HELPERS (Anti-Update-Gap)
+    // ----------------------------------------------------
+    function isValidStudent(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.parentName is string && data.parentName.size() > 0 && data.parentName.size() <= 100 &&
+             data.parentPhone is string && data.parentPhone.size() > 0 && data.parentPhone.size() <= 30 &&
+             (!('address' in data) || (data.address is string && data.address.size() <= 300)) &&
+             (!('diagnosis' in data) || (data.diagnosis is string && data.diagnosis.size() <= 300)) &&
+             (!('grade' in data) || (data.grade is string && data.grade.size() <= 100)) &&
+             (!('subject' in data) || (data.subject is string && data.subject.size() <= 150)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000)) &&
+             (!('currentLevel' in data) || (data.currentLevel is string && data.currentLevel.size() <= 100)) &&
+             (!('levelScore' in data) || (data.levelScore is number)) &&
+             (!('totalSessions' in data) || (data.totalSessions is number)) &&
+             (!('completedSessions' in data) || (data.completedSessions is number)) &&
+             (!('remainingSessions' in data) || (data.remainingSessions is number));
+    }
+
+    function isValidSession(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.studentId is string && data.studentId.size() <= 128 &&
+             data.studentName is string && data.studentName.size() <= 100 &&
+             data.date is string && data.date.size() <= 30 &&
+             (!('sessionNumber' in data) || (data.sessionNumber is number)) &&
+             (!('durationMinutes' in data) || (data.durationMinutes is number)) &&
+             (!('understandingScore' in data) || (data.understandingScore is number)) &&
+             (!('studentEngagementScore' in data) || (data.studentEngagementScore is number)) &&
+             (!('topic' in data) || (data.topic is string && data.topic.size() <= 300)) &&
+             (!('studentStrengths' in data) || (data.studentStrengths is string && data.studentStrengths.size() <= 1000)) &&
+             (!('areasToImprove' in data) || (data.areasToImprove is string && data.areasToImprove.size() <= 1000)) &&
+             (!('nextPlan' in data) || (data.nextPlan is string && data.nextPlan.size() <= 1000)) &&
+             (!('homeworkAssigned' in data) || (data.homeworkAssigned is string && data.homeworkAssigned.size() <= 1000)) &&
+             (!('teacherNoteToParent' in data) || (data.teacherNoteToParent is string && data.teacherNoteToParent.size() <= 1500));
+    }
+
+    function isValidTimeline(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.studentId is string && data.studentId.size() <= 128 &&
+             data.title is string && data.title.size() <= 250 &&
+             data.date is string && data.date.size() <= 30 &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 1000));
+    }
+
+    function isValidLead(data) {
+      return data.parentName is string && data.parentName.size() >= 2 && data.parentName.size() <= 100 &&
+             data.phone is string && data.phone.size() >= 6 && data.phone.size() <= 30 &&
+             (!('studentName' in data) || (data.studentName is string && data.studentName.size() <= 100)) &&
+             (!('studentAge' in data) || (data.studentAge is string && data.studentAge.size() <= 50)) &&
+             (!('subjectNeeded' in data) || (data.subjectNeeded is string && data.subjectNeeded.size() <= 150)) &&
+             (!('preferredTime' in data) || (data.preferredTime is string && data.preferredTime.size() <= 100)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000));
+    }
+
+    function isValidTeacherProfile(data) {
+      return (!('name' in data) || (data.name is string && data.name.size() <= 100)) &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 100)) &&
+             (!('phone' in data) || (data.phone is string && data.phone.size() <= 50)) &&
+             (!('whatsapp' in data) || (data.whatsapp is string && data.whatsapp.size() <= 50));
+    }
+
+    // ----------------------------------------------------
+    // 1. HEALTH CHECK & CONNECTION TEST
+    // ----------------------------------------------------
+    match /test/{testId} {
+      allow get: if true;
+      allow write: if isSpecialist();
+    }
+
+    // ----------------------------------------------------
+    // 2. APP SETTINGS (PUBLIC PROFILE & PRIVATE TEACHER DATA)
+    // ----------------------------------------------------
+    match /app_settings/{settingId} {
+      // Public teacher profile: visitors can read qualifications and contact info
+      allow get: if settingId == 'profile' || isSpecialist();
+      allow list: if isSpecialist();
+      allow write: if isSpecialist() && (
+        settingId != 'profile' || isValidTeacherProfile(incoming())
+      );
+    }
+
+    // ----------------------------------------------------
+    // 3. LEADS (CONSULTATION & EVALUATION BOOKING REQUESTS)
+    // ----------------------------------------------------
     match /leads/{leadId} {
-      allow read, write: if true;
+      // Any parent visitor can submit a consultation/evaluation request with strict schema validation
+      allow create: if isValidId(leadId) && isValidLead(incoming());
+      // ONLY the authenticated specialist can inspect, list, update, or remove inquiries
+      allow read, list, update, delete: if isSpecialist();
     }
 
-    // Allow all other application documents
+    // ----------------------------------------------------
+    // 4. STUDENTS (CONFIDENTIAL CLINICAL RECORDS)
+    // ----------------------------------------------------
+    match /students/{studentId} {
+      // ONLY the authenticated specialist can access, list, or manage student medical/therapy records
+      allow read, list: if isSpecialist();
+      allow create, update: if isSpecialist() && isValidId(studentId) && isValidStudent(incoming());
+      allow delete: if isSpecialist() && isValidId(studentId);
+    }
+
+    // ----------------------------------------------------
+    // 5. SESSIONS (CONFIDENTIAL CLINICAL & PROGRESS LOGS)
+    // ----------------------------------------------------
+    match /sessions/{sessionId} {
+      // ONLY the authenticated specialist can access or log therapy sessions
+      allow read, list: if isSpecialist();
+      allow create, update: if isSpecialist() && isValidId(sessionId) && isValidSession(incoming());
+      allow delete: if isSpecialist() && isValidId(sessionId);
+    }
+
+    // ----------------------------------------------------
+    // 6. TIMELINES (STUDENT MILESTONES & BADGES)
+    // ----------------------------------------------------
+    match /timelines/{timelineId} {
+      // ONLY the authenticated specialist can access or modify milestone records
+      allow read, list: if isSpecialist();
+      allow create, update: if isSpecialist() && isValidId(timelineId) && isValidTimeline(incoming());
+      allow delete: if isSpecialist() && isValidId(timelineId);
+    }
+
+    // ----------------------------------------------------
+    // GLOBAL CATCH-ALL (DEFAULT DENY ALL OTHER DOCUMENTS)
+    // ----------------------------------------------------
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }
-
-

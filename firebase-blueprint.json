@@ -2,82 +2,145 @@
   "entities": {
     "students": {
       "title": "Students",
-      "description": "Speech therapy and special education students records",
+      "description": "Speech therapy and special education student records and progress",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "birthDate": { "type": "string" },
-        "address": { "type": "string" },
-        "diagnosis": { "type": "string" },
-        "grade": { "type": "string" },
-        "subject": { "type": "string" },
-        "parentName": { "type": "string" },
-        "parentPhone": { "type": "string" },
-        "parentUsername": { "type": "string" },
-        "parentPassword": { "type": "string" },
-        "parentAccessCode": { "type": "string" },
-        "currentLevel": { "type": "string" },
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "birthDate": { "type": "string", "maxLength": 30 },
+        "address": { "type": "string", "maxLength": 200 },
+        "diagnosis": { "type": "string", "maxLength": 200 },
+        "grade": { "type": "string", "maxLength": 50 },
+        "subject": { "type": "string", "maxLength": 100 },
+        "parentName": { "type": "string", "maxLength": 100 },
+        "parentPhone": { "type": "string", "maxLength": 30 },
+        "parentUsername": { "type": "string", "maxLength": 50 },
+        "parentPassword": { "type": "string", "maxLength": 50 },
+        "parentAccessCode": { "type": "string", "maxLength": 50 },
+        "currentLevel": { "type": "string", "maxLength": 100 },
         "levelScore": { "type": "number" },
         "totalSessions": { "type": "number" },
         "completedSessions": { "type": "number" },
         "remainingSessions": { "type": "number" },
-        "status": { "type": "string" },
-        "joinedAt": { "type": "string" },
-        "nextSessionDate": { "type": "string" },
-        "nextSessionTime": { "type": "string" },
-        "notes": { "type": "string" }
+        "status": { "type": "string", "maxLength": 20 },
+        "joinedAt": { "type": "string", "maxLength": 30 },
+        "nextSessionDate": { "type": "string", "maxLength": 30 },
+        "nextSessionTime": { "type": "string", "maxLength": 30 },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "specialistEmail": { "type": "string", "maxLength": 100 }
       },
-      "required": ["id", "name", "parentName", "parentPhone", "parentUsername", "parentPassword"]
+      "required": ["id", "name", "parentName", "parentPhone"]
     },
     "sessions": {
       "title": "Sessions",
-      "description": "Rehabilitation and speech sessions records",
+      "description": "Rehabilitation, speech sessions and clinical notes",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "studentId": { "type": "string" },
-        "studentName": { "type": "string" },
+        "id": { "type": "string", "maxLength": 128 },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "studentName": { "type": "string", "maxLength": 100 },
         "sessionNumber": { "type": "number" },
-        "date": { "type": "string" },
-        "time": { "type": "string" },
+        "date": { "type": "string", "maxLength": 30 },
+        "time": { "type": "string", "maxLength": 30 },
         "durationMinutes": { "type": "number" },
-        "skillsTrained": { "type": "array", "items": { "type": "string" } },
-        "masteryScore": { "type": "number" },
-        "status": { "type": "string" },
-        "notes": { "type": "string" },
-        "homeExercise": { "type": "string" },
-        "nextAppointmentDate": { "type": "string" }
+        "status": { "type": "string", "maxLength": 30 },
+        "topic": { "type": "string", "maxLength": 200 },
+        "preSessionNotes": { "type": "string", "maxLength": 500 },
+        "previousHomeworkStatus": { "type": "string", "maxLength": 50 },
+        "understandingScore": { "type": "number" },
+        "studentEngagementScore": { "type": "number" },
+        "studentStrengths": { "type": "string", "maxLength": 500 },
+        "areasToImprove": { "type": "string", "maxLength": 500 },
+        "nextPlan": { "type": "string", "maxLength": 500 },
+        "homeworkAssigned": { "type": "string", "maxLength": 500 },
+        "teacherNoteToParent": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "maxLength": 50 }
       },
-      "required": ["id", "studentId", "studentName", "sessionNumber", "date", "status"]
+      "required": ["id", "studentId", "studentName", "date"]
     },
-    "homeworks": {
-      "title": "Homeworks",
-      "description": "Home language exercises and speech assignments",
+    "timelines": {
+      "title": "Timelines",
+      "description": "Clinical milestones, achievement badges and progress events",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "studentId": { "type": "string" },
-        "studentName": { "type": "string" },
-        "title": { "type": "string" },
-        "description": { "type": "string" },
-        "assignedDate": { "type": "string" },
-        "dueDate": { "type": "string" },
-        "completed": { "type": "boolean" },
-        "parentFeedback": { "type": "string" }
+        "id": { "type": "string", "maxLength": 128 },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 200 },
+        "description": { "type": "string", "maxLength": 500 },
+        "date": { "type": "string", "maxLength": 30 },
+        "levelBadge": { "type": "string", "maxLength": 50 },
+        "type": { "type": "string", "maxLength": 50 }
       },
-      "required": ["id", "studentId", "title", "assignedDate"]
+      "required": ["id", "studentId", "title", "date"]
+    },
+    "leads": {
+      "title": "Leads",
+      "description": "Parent consultation, evaluation and enrollment requests",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "parentName": { "type": "string", "maxLength": 100 },
+        "studentName": { "type": "string", "maxLength": 100 },
+        "studentAge": { "type": "string", "maxLength": 50 },
+        "subjectNeeded": { "type": "string", "maxLength": 150 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "preferredTime": { "type": "string", "maxLength": 100 },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "status": { "type": "string", "maxLength": 30 },
+        "createdAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["parentName", "phone"]
     },
     "app_settings": {
       "title": "AppSettings",
-      "description": "Teacher profile and credentials",
+      "description": "Specialist profile, professional details and system settings",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "teacherProfile": { "type": "object" },
-        "teacherCredentials": { "type": "object" }
+        "name": { "type": "string", "maxLength": 100 },
+        "title": { "type": "string", "maxLength": 150 },
+        "tagline": { "type": "string", "maxLength": 250 },
+        "bio": { "type": "string", "maxLength": 1000 },
+        "experienceYears": { "type": "number" },
+        "phone": { "type": "string", "maxLength": 50 },
+        "whatsapp": { "type": "string", "maxLength": 50 },
+        "email": { "type": "string", "maxLength": 100 },
+        "location": { "type": "string", "maxLength": 100 }
       },
-      "required": ["id"]
+      "required": ["name", "email"]
+    },
+    "testConnection": {
+      "title": "TestConnection",
+      "description": "Health check document for Firestore availability verification",
+      "type": "object",
+      "properties": {
+        "status": { "type": "string", "maxLength": 30 }
+      }
+    }
+  },
+  "firestore": {
+    "/test/{testId}": {
+      "schema": "testConnection",
+      "description": "Connection test and availability ping"
+    },
+    "/app_settings/{settingId}": {
+      "schema": "app_settings",
+      "description": "Specialist profile and credentials"
+    },
+    "/students/{studentId}": {
+      "schema": "students",
+      "description": "Speech therapy student records, clinical assessments and IEP tracking"
+    },
+    "/sessions/{sessionId}": {
+      "schema": "sessions",
+      "description": "Individual therapy session logs and homework records"
+    },
+    "/timelines/{timelineId}": {
+      "schema": "timelines",
+      "description": "Student achievement milestones"
+    },
+    "/leads/{leadId}": {
+      "schema": "leads",
+      "description": "Consultation and evaluation requests submitted by parents"
     }
   }
 }

@@ -1,10 +1,56 @@
 @import "tailwindcss";
 
+/* Official Amazon Ember Arabic (Typeface) */
+@font-face {
+  font-family: 'Amazon Ember Arabic';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Amazon Ember Arabic'),
+       local('AmazonEmberArabic'),
+       local('Amazon Ember Modern Arabic'),
+       url('https://m.media-amazon.com/images/S/sash/8DAF9ewwcXI$cJC.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Amazon Ember Arabic';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Amazon Ember Arabic Bold'),
+       local('AmazonEmberArabic-Bold'),
+       local('Amazon Ember Modern Arabic Bold'),
+       url('https://m.media-amazon.com/images/S/sash/HDUti1N-o9QfhKy.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Amazon Ember Modern Arabic';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Amazon Ember Modern Arabic'),
+       url('https://m.media-amazon.com/images/S/sash/8DAF9ewwcXI$cJC.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Amazon Ember Modern Arabic';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Amazon Ember Modern Arabic Bold'),
+       url('https://m.media-amazon.com/images/S/sash/HDUti1N-o9QfhKy.woff2') format('woff2');
+}
+
+@theme {
+  --font-sans: 'Amazon Ember Arabic', 'Amazon Ember Modern Arabic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
   *, ::before, ::after {
     box-sizing: border-box;
+    font-family: 'Amazon Ember Arabic', 'Amazon Ember Modern Arabic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   }
 
   html {
@@ -14,7 +60,9 @@
   }
 
   body {
-    font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+    font-family: 'Amazon Ember Arabic', 'Amazon Ember Modern Arabic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     background-color: #f0f7fc;
     color: #0f172a;
     max-width: 100vw;
@@ -53,41 +101,3 @@
 .bg-royal-dark-surface {
   background-color: #0f172a;
 }
-.bg-royal-dark-surface-elevated {
-  background-color: #131f3b;
-}
-.border-royal-dark {
-  border-color: rgba(30, 58, 138, 0.45);
-}
-
-/* Custom scrollbar for fresh sky & royal blue dark theme */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #e2eff8;
-}
-
-.dark ::-webkit-scrollbar-track {
-  background: #0b1329;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #93c5fd;
-  border-radius: 9999px;
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: #1e3a8a;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #3b82f6;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #2563eb;
-}
-

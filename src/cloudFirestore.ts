@@ -201,37 +201,41 @@ export const cloudService = {
     onSettingsUpdate: (creds?: TeacherCredentials, profile?: TeacherProfile) => void;
     onStatusChange: (status: CloudSyncStatus, message?: string) => void;
   }): (() => void) => {
-    callbacks.onStatusChange('connecting', 'جاري الاتصال بقاعدة بيانات Firestore السحابية...');
-
     let isDisposed = false;
-    let hasConnected = false;
+    let unsubPrivateListeners: (() => void) | null = null;
 
-    const markSynced = () => {
-      if (!isDisposed) {
-        hasConnected = true;
-        const userEmail = auth.currentUser?.email;
-        const msg = userEmail
-          ? `متصل بـ Firestore السحابي (${userEmail}) 🟢`
-          : 'متصل بالسحابة (Firestore) - البيانات محدثة ومحمية 🟢';
-        callbacks.onStatusChange('synced', msg);
-      }
-    };
+    // Public Profile listener is always safe and accessible
+    let unsubProfile: () => void = () => {};
+    try {
+      unsubProfile = onSnapshot(doc(db, 'app_settings', 'profile'), (snapshot) => {
+        if (isDisposed) return;
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          if (data) {
+            callbacks.onSettingsUpdate(undefined, data as TeacherProfile);
+            storage.saveTeacherProfile(data as TeacherProfile);
+          }
+        }
+      }, (err) => console.warn('Public profile notice:', err.message));
+    } catch (e) {
+      console.warn('Profile listener error:', e);
+    }
 
-    // 1. Initial fast-fetch from Firestore
-    (async () => {
+    // Attach private listeners only when authenticated as the specialist
+    const attachPrivateListeners = async (userEmail: string) => {
+      callbacks.onStatusChange('syncing', `جاري مزامنة بيانات الأخصائي (${userEmail})...`);
+
       try {
-        const [studentsSnap, sessionsSnap, timelinesSnap, leadsSnap, settingsSnap] = await Promise.all([
+        // Fast initial fetch for authenticated specialist
+        const [studentsSnap, sessionsSnap, timelinesSnap, leadsSnap] = await Promise.all([
           getDocs(collection(db, 'students')),
           getDocs(collection(db, 'sessions')),
           getDocs(collection(db, 'timelines')),
-          getDocs(collection(db, 'leads')),
-          getDoc(doc(db, 'app_settings', 'profile'))
+          getDocs(collection(db, 'leads'))
         ]);
 
         if (isDisposed) return;
-        markSynced();
 
-        // Process Students
         if (!studentsSnap.empty) {
           const list: Student[] = [];
           studentsSnap.forEach((d) => list.push(d.data() as Student));
@@ -239,16 +243,15 @@ export const cloudService = {
           callbacks.onStudentsUpdate(list);
           storage.saveStudents(list);
         } else {
-          // If Firestore is empty and teacher is authenticated or local has data, seed Firestore
+          // If remote is empty, backup local to cloud
           const localStudents = storage.getStudents();
-          if (localStudents && localStudents.length > 0 && auth.currentUser) {
+          if (localStudents && localStudents.length > 0) {
             for (const s of localStudents) {
               setDoc(doc(db, 'students', s.id), sanitize(s), { merge: true }).catch(() => {});
             }
           }
         }
 
-        // Process Sessions
         if (!sessionsSnap.empty) {
           const list: SessionRecord[] = [];
           sessionsSnap.forEach((d) => list.push(d.data() as SessionRecord));
@@ -257,7 +260,6 @@ export const cloudService = {
           storage.saveSessions(list);
         }
 
-        // Process Timelines
         if (!timelinesSnap.empty) {
           const list: TimelineMilestone[] = [];
           timelinesSnap.forEach((d) => list.push(d.data() as TimelineMilestone));
@@ -265,7 +267,6 @@ export const cloudService = {
           storage.saveTimelines(list);
         }
 
-        // Process Leads
         if (!leadsSnap.empty) {
           const list: EnrollmentLead[] = [];
           leadsSnap.forEach((d) => list.push(d.data() as EnrollmentLead));
@@ -273,59 +274,28 @@ export const cloudService = {
           storage.saveLeads(list);
         }
 
-        // Process Settings Profile
-        if (settingsSnap.exists()) {
-          const data = settingsSnap.data();
-          if (data) {
-            callbacks.onSettingsUpdate(undefined, data as TeacherProfile);
-            storage.saveTeacherProfile(data as TeacherProfile);
-          }
-        }
-      } catch (e: any) {
-        if (!isDisposed) {
-          if (e?.message?.includes('the client is offline')) {
-            callbacks.onStatusChange('offline', 'وضع غير متصل بالإنترنت');
-          } else {
-            // Still report connecting or synced if live listener succeeds
-            console.warn('Initial fast getDocs check:', e);
-          }
-        }
+        callbacks.onStatusChange('synced', `متصل بسحابة Firestore المحمية (${userEmail}) 🟢`);
+      } catch (err: any) {
+        console.warn('Initial authenticated fetch note:', err);
       }
-    })();
 
-    // 2. Real-time Listeners
-    let unsubStudents: () => void = () => {};
-    let unsubSessions: () => void = () => {};
-    let unsubTimelines: () => void = () => {};
-    let unsubLeads: () => void = () => {};
-    let unsubProfile: () => void = () => {};
-
-    try {
-      // Students Listener
-      unsubStudents = onSnapshot(collection(db, 'students'), (snapshot) => {
+      // Attach Live Snapshot Listeners for authenticated specialist
+      const unsubStudents = onSnapshot(collection(db, 'students'), (snapshot) => {
         if (isDisposed) return;
-        markSynced();
+        callbacks.onStatusChange('synced', `سحابة Firestore متزامنة ومؤمنة (${userEmail}) 🟢`);
         const list: Student[] = [];
-        snapshot.forEach((docSnap) => {
-          list.push(docSnap.data() as Student);
-        });
+        snapshot.forEach((docSnap) => list.push(docSnap.data() as Student));
         if (list.length > 0) {
           list.sort((a, b) => (b.joinedAt || '').localeCompare(a.joinedAt || ''));
           callbacks.onStudentsUpdate(list);
           storage.saveStudents(list);
         }
-      }, (err) => {
-        handleFirestoreError(err, OperationType.LIST, 'students');
-      });
+      }, (err) => handleFirestoreError(err, OperationType.LIST, 'students'));
 
-      // Sessions Listener
-      unsubSessions = onSnapshot(collection(db, 'sessions'), (snapshot) => {
+      const unsubSessions = onSnapshot(collection(db, 'sessions'), (snapshot) => {
         if (isDisposed) return;
-        markSynced();
         const list: SessionRecord[] = [];
-        snapshot.forEach((docSnap) => {
-          list.push(docSnap.data() as SessionRecord);
-        });
+        snapshot.forEach((docSnap) => list.push(docSnap.data() as SessionRecord));
         if (list.length > 0) {
           list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
           callbacks.onSessionsUpdate(list);
@@ -333,59 +303,54 @@ export const cloudService = {
         }
       }, (err) => handleFirestoreError(err, OperationType.LIST, 'sessions'));
 
-      // Timelines Listener
-      unsubTimelines = onSnapshot(collection(db, 'timelines'), (snapshot) => {
+      const unsubTimelines = onSnapshot(collection(db, 'timelines'), (snapshot) => {
         if (isDisposed) return;
-        markSynced();
         const list: TimelineMilestone[] = [];
-        snapshot.forEach((docSnap) => {
-          list.push(docSnap.data() as TimelineMilestone);
-        });
+        snapshot.forEach((docSnap) => list.push(docSnap.data() as TimelineMilestone));
         if (list.length > 0) {
           callbacks.onTimelinesUpdate(list);
           storage.saveTimelines(list);
         }
       }, (err) => handleFirestoreError(err, OperationType.LIST, 'timelines'));
 
-      // Leads Listener
-      unsubLeads = onSnapshot(collection(db, 'leads'), (snapshot) => {
+      const unsubLeads = onSnapshot(collection(db, 'leads'), (snapshot) => {
         if (isDisposed) return;
-        markSynced();
         const list: EnrollmentLead[] = [];
-        snapshot.forEach((docSnap) => {
-          list.push(docSnap.data() as EnrollmentLead);
-        });
+        snapshot.forEach((docSnap) => list.push(docSnap.data() as EnrollmentLead));
         callbacks.onLeadsUpdate(list);
         storage.saveLeads(list);
-      }, (err) => {
-        // Leads might only be listenable by teacher, non-fatal
-        console.warn('Leads listener notice:', err.message);
-      });
+      }, (err) => console.warn('Leads live listener notice:', err.message));
 
-      // Profile Listener
-      unsubProfile = onSnapshot(doc(db, 'app_settings', 'profile'), (snapshot) => {
-        if (isDisposed) return;
-        markSynced();
-        if (snapshot.exists()) {
-          const data = snapshot.data();
-          if (data) {
-            callbacks.onSettingsUpdate(undefined, data as TeacherProfile);
-            storage.saveTeacherProfile(data as TeacherProfile);
-          }
-        }
-      }, (err) => console.warn('Profile listener note:', err.message));
+      unsubPrivateListeners = () => {
+        unsubStudents();
+        unsubSessions();
+        unsubTimelines();
+        unsubLeads();
+      };
+    };
 
-    } catch (err) {
-      console.warn('Listeners init note:', err);
-    }
+    // Monitor Firebase Auth state to safely engage private data stream
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      if (isDisposed) return;
+      if (unsubPrivateListeners) {
+        unsubPrivateListeners();
+        unsubPrivateListeners = null;
+      }
+
+      if (user && user.email) {
+        attachPrivateListeners(user.email);
+      } else {
+        callbacks.onStatusChange('synced', 'البيانات محمية محلياً - سجّل الدخول بحساب Google لمزامنة السحابة');
+      }
+    });
 
     return () => {
       isDisposed = true;
-      unsubStudents();
-      unsubSessions();
-      unsubTimelines();
-      unsubLeads();
+      unsubAuth();
       unsubProfile();
+      if (unsubPrivateListeners) {
+        unsubPrivateListeners();
+      }
     };
   },
 

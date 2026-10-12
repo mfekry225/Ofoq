@@ -54,6 +54,11 @@ export const storage = {
           localStorage.setItem(STORAGE_KEYS.TEACHER_PROFILE, JSON.stringify(INITIAL_TEACHER_PROFILE));
           return INITIAL_TEACHER_PROFILE;
         }
+        if (!parsed.phone || parsed.phone.includes('33000000') || !parsed.whatsapp || parsed.whatsapp.includes('33000000')) {
+          parsed.phone = '+973 36819980';
+          parsed.whatsapp = '97336819980';
+          localStorage.setItem(STORAGE_KEYS.TEACHER_PROFILE, JSON.stringify(parsed));
+        }
         return parsed;
       }
       return INITIAL_TEACHER_PROFILE;
