@@ -633,6 +633,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                               onDeleteStudent(std.id);
                             }
                           }}
+                          aria-label={`حذف ملف الطالب ${std.name}`}
                           title="حذف ملف الطالب"
                           className="p-2 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 rounded-xl border border-rose-200 dark:border-rose-900/40 transition cursor-pointer"
                         >

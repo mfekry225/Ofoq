@@ -323,6 +323,7 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
                       className="absolute left-3 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
                       tabIndex={-1}
                       title={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
