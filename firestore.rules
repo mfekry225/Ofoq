@@ -37,6 +37,7 @@ service cloud.firestore {
              data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
              data.parentName is string && data.parentName.size() > 0 && data.parentName.size() <= 100 &&
              data.parentPhone is string && data.parentPhone.size() > 0 && data.parentPhone.size() <= 30 &&
+             (!('motherPhone' in data) || (data.motherPhone is string && data.motherPhone.size() <= 30)) &&
              (!('address' in data) || (data.address is string && data.address.size() <= 300)) &&
              (!('diagnosis' in data) || (data.diagnosis is string && data.diagnosis.size() <= 300)) &&
              (!('grade' in data) || (data.grade is string && data.grade.size() <= 100)) &&
@@ -77,6 +78,7 @@ service cloud.firestore {
     function isValidLead(data) {
       return data.parentName is string && data.parentName.size() >= 2 && data.parentName.size() <= 100 &&
              data.phone is string && data.phone.size() >= 6 && data.phone.size() <= 30 &&
+             (!('motherPhone' in data) || (data.motherPhone is string && data.motherPhone.size() <= 30)) &&
              (!('studentName' in data) || (data.studentName is string && data.studentName.size() <= 100)) &&
              (!('studentAge' in data) || (data.studentAge is string && data.studentAge.size() <= 50)) &&
              (!('subjectNeeded' in data) || (data.subjectNeeded is string && data.subjectNeeded.size() <= 150)) &&

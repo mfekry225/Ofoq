@@ -26,6 +26,7 @@ export const EnrollmentFormView: React.FC<EnrollmentFormViewProps> = ({
     studentAge: '',
     subjectNeeded: teacherProfile.subjects[0] || 'تأهيل تخاطب وتنمية لغوية',
     phone: '',
+    motherPhone: '',
     preferredTime: 'مساءً (من 4 إلى 7 م)',
     notes: '',
   });
@@ -42,6 +43,7 @@ export const EnrollmentFormView: React.FC<EnrollmentFormViewProps> = ({
       studentAge: formData.studentAge,
       subjectNeeded: formData.subjectNeeded,
       phone: formData.phone,
+      motherPhone: formData.motherPhone || undefined,
       preferredTime: formData.preferredTime,
       notes: formData.notes,
     });
@@ -55,7 +57,8 @@ export const EnrollmentFormView: React.FC<EnrollmentFormViewProps> = ({
 👦 *اسم الطالب:* ${formData.studentName || 'غير محدد'}
 🎂 *العمر / الصف:* ${formData.studentAge || 'غير محدد'}
 📚 *المسار المطلوب:* ${formData.subjectNeeded}
-📱 *رقم الهاتف للتواصل:* ${formData.phone || 'غير محدد'}
+📱 *هاتف الأب/الأساسي:* ${formData.phone || 'غير محدد'}
+${formData.motherPhone ? `📱 *هاتف الأم:* ${formData.motherPhone}` : ''}
 ⏰ *الموعد المفضل:* ${formData.preferredTime}
 📝 *ملاحظات:* ${formData.notes || 'لا توجد'}`;
 
@@ -286,6 +289,25 @@ export const EnrollmentFormView: React.FC<EnrollmentFormViewProps> = ({
                       placeholder="+973 3XXXXXXX أو رقم الهاتف"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      className="w-full bg-slate-50 dark:bg-[#080d1a] border border-slate-200 dark:border-blue-900/50 rounded-xl pr-10 pl-3.5 py-3 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-right focus:outline-hidden focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-[#0b1326] transition"
+                    />
+                  </div>
+                </div>
+
+                {/* Mother Phone */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    رقم الأم (اختياري - لمتابعة التقارير وجلسات الواتساب)
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3.5 top-3.5" />
+                    <input
+                      id="input-mother-phone"
+                      type="tel"
+                      dir="ltr"
+                      placeholder="+973 3XXXXXXX (اختياري)"
+                      value={formData.motherPhone}
+                      onChange={(e) => setFormData({ ...formData, motherPhone: e.target.value })}
                       className="w-full bg-slate-50 dark:bg-[#080d1a] border border-slate-200 dark:border-blue-900/50 rounded-xl pr-10 pl-3.5 py-3 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-right focus:outline-hidden focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-[#0b1326] transition"
                     />
                   </div>

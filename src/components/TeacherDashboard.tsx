@@ -540,11 +540,28 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                             target="_blank"
                             rel="noreferrer"
                             className="text-emerald-700 dark:text-emerald-400 font-bold hover:underline flex items-center gap-1 text-[11px] shrink-0"
+                            title="هاتف الأب / الأساسي"
                           >
                             <Phone className="w-3 h-3" />
                             <span>{std.parentPhone}</span>
                           </a>
                         </div>
+
+                        {std.motherPhone && (
+                          <div className="flex items-center justify-between text-slate-700 dark:text-slate-300 pt-1 border-t border-blue-100/60 dark:border-blue-900/40">
+                            <span className="text-[11px]">رقم الأم:</span>
+                            <a
+                              href={`https://wa.me/${std.motherPhone.replace(/[^0-9]/g, '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-emerald-700 dark:text-emerald-400 font-bold hover:underline flex items-center gap-1 text-[11px] shrink-0"
+                              title="هاتف الأم"
+                            >
+                              <Phone className="w-3 h-3" />
+                              <span>{std.motherPhone}</span>
+                            </a>
+                          </div>
+                        )}
 
                         {/* Account Access Details Grid */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 bg-white dark:bg-[#080d1a] rounded-lg border border-blue-100 dark:border-blue-900/40">

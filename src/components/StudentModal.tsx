@@ -136,6 +136,7 @@ export const StudentModal: React.FC<StudentModalProps> = ({
     levelScore: studentToEdit?.levelScore ?? 75,
     parentName: studentToEdit?.parentName || '',
     parentPhone: studentToEdit?.parentPhone || '+973 ',
+    motherPhone: studentToEdit?.motherPhone || '',
     parentUsername: studentToEdit?.parentUsername || '',
     parentPassword: studentToEdit?.parentPassword || '123456',
     totalSessions: studentToEdit?.totalSessions || 12,
@@ -182,6 +183,7 @@ export const StudentModal: React.FC<StudentModalProps> = ({
       levelScore: Number(formData.levelScore) || 75,
       parentName: formData.parentName.trim(),
       parentPhone: formData.parentPhone.trim(),
+      motherPhone: formData.motherPhone?.trim() || undefined,
       parentUsername: formData.parentUsername?.trim() || formData.parentPhone.replace(/[^0-9]/g, ''),
       parentPassword: formData.parentPassword?.trim() || '123456',
       totalSessions: Number(formData.totalSessions) || 12,
@@ -374,7 +376,7 @@ export const StudentModal: React.FC<StudentModalProps> = ({
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     اسم ولي الأمر <span className="text-orange-600 dark:text-orange-400">*</span>
@@ -383,16 +385,16 @@ export const StudentModal: React.FC<StudentModalProps> = ({
                     id="input-std-parent-name"
                     type="text"
                     required
-                    placeholder="مثال: أ. أحمد الخليفة (والد الطفل)"
+                    placeholder="مثال: أ. أحمد الخليفة"
                     value={formData.parentName}
                     onChange={(e) => setFormData({ ...formData, parentName: e.target.value })}
-                    className="w-full bg-white dark:bg-[#080d1a] border border-slate-200 dark:border-blue-900/50 rounded-xl px-3 py-2 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:border-blue-500 dark:focus:border-blue-400 transition"
+                    className="w-full bg-white dark:bg-[#080d1a] border border-slate-200 dark:border-blue-900/50 rounded-xl px-3 py-2 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:border-blue-500 dark:focus:border-blue-400 transition text-xs"
                   />
                 </div>
 
                 <div>
                   <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    هاتف ولي الأمر (واتساب) <span className="text-orange-600 dark:text-orange-400">*</span>
+                    هاتف الأب / الأساسي <span className="text-orange-600 dark:text-orange-400">*</span>
                   </label>
                   <input
                     id="input-std-parent-phone"
@@ -402,7 +404,22 @@ export const StudentModal: React.FC<StudentModalProps> = ({
                     placeholder="+973 XXXXXXXX"
                     value={formData.parentPhone}
                     onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
-                    className="w-full bg-white dark:bg-[#080d1a] border border-slate-200 dark:border-blue-900/50 rounded-xl px-3 py-2 text-slate-900 dark:text-white text-right placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:border-blue-500 dark:focus:border-blue-400 transition"
+                    className="w-full bg-white dark:bg-[#080d1a] border border-slate-200 dark:border-blue-900/50 rounded-xl px-3 py-2 text-slate-900 dark:text-white text-right placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:border-blue-500 dark:focus:border-blue-400 transition text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    رقم الأم (واتساب / اتصال)
+                  </label>
+                  <input
+                    id="input-std-mother-phone"
+                    type="tel"
+                    dir="ltr"
+                    placeholder="+973 XXXXXXXX"
+                    value={formData.motherPhone || ''}
+                    onChange={(e) => setFormData({ ...formData, motherPhone: e.target.value })}
+                    className="w-full bg-white dark:bg-[#080d1a] border border-slate-200 dark:border-blue-900/50 rounded-xl px-3 py-2 text-slate-900 dark:text-white text-right placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:border-blue-500 dark:focus:border-blue-400 transition text-xs"
                   />
                 </div>
               </div>

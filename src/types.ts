@@ -62,6 +62,7 @@ export interface Student {
   diagnosis?: string; // التشخيص الطبي / التأهيلي
   parentName: string;
   parentPhone: string;
+  motherPhone?: string; // رقم الأم (واتساب / اتصال)
   parentUsername: string; // Unique username for parent login
   parentPassword: string; // Password for parent login
   parentAccessCode?: string; // Optional access code reference
@@ -132,6 +133,7 @@ export interface EnrollmentLead {
   studentAge: string;
   subjectNeeded: string;
   phone: string;
+  motherPhone?: string; // رقم الأم
   preferredTime: string;
   notes: string;
   status: 'new' | 'contacted' | 'converted' | 'cancelled';

@@ -255,6 +255,7 @@ function MainAppContent() {
       subject: lead.subjectNeeded,
       parentName: lead.parentName,
       parentPhone: lead.phone,
+      motherPhone: lead.motherPhone,
       parentUsername: `${lead.parentName.split(' ')[0]}_${randomCode}`.toLowerCase(),
       parentPassword: Math.floor(100000 + Math.random() * 900000).toString(),
       parentAccessCode: `OFQ-${randomCode}`,
