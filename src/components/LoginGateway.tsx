@@ -184,8 +184,8 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
               <h1 className="font-bold text-lg text-slate-800 dark:text-white leading-tight">
                 منصة أُفق
               </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                مركز التخاطب وتنمية المهارات
+              <p className="text-xs text-sky-600 dark:text-sky-400 font-semibold">
+                الأخصائي محمد فكري
               </p>
             </div>
           </div>
@@ -195,7 +195,7 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
               onClick={onNavigateToProfile}
               className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-sky-300 transition-colors"
             >
-              التعريف بالمركز
+              التعريف بالأخصائي
             </button>
             <ThemeToggle />
           </div>
@@ -349,7 +349,7 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
                 className="text-sky-600 dark:text-sky-400 font-semibold hover:underline inline-flex items-center gap-1"
               >
                 <Smartphone className="w-3 h-3" />
-                تواصل عبر واتساب المركز
+                تواصل عبر واتساب الأخصائي
               </a>
             </p>
           </div>

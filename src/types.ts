@@ -52,6 +52,28 @@ export interface TeacherProfile {
   }[];
 }
 
+export interface CompletedAssessmentRecord {
+  id: string;
+  studentId?: string;
+  studentName?: string;
+  scaleId: 'language' | 'autism' | 'developmental_learning' | 'stuttering';
+  scaleTitle: string;
+  childName: string;
+  childAge?: string;
+  evaluatorName?: string; // ولي الأمر أو الأخصائي
+  evaluatorRole?: 'parent' | 'teacher';
+  scores: Record<number, number>; // questionId -> 0 | 1 | 2
+  totalScore: number; // 0 to 20
+  riskLevel: 'low' | 'moderate' | 'high';
+  riskLabel: string;
+  summary?: string;
+  advice?: string[];
+  date: string;
+  createdAt?: string;
+  notes?: string;
+  viewedByTeacher?: boolean;
+}
+
 export interface Student {
   id: string;
   name: string;
@@ -76,6 +98,9 @@ export interface Student {
   nextSessionDate?: string;
   nextSessionTime?: string;
   notes?: string;
+  assessments?: CompletedAssessmentRecord[];
+  hasNewAssessment?: boolean;
+  lastAssessmentDate?: string;
 }
 
 export interface ActivityItem {

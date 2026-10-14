@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   TeacherProfile, Student, SessionRecord, TimelineMilestone, 
-  EnrollmentLead, CurrentUser, TeacherCredentials 
+  EnrollmentLead, CurrentUser, TeacherCredentials, CompletedAssessmentRecord 
 } from './types';
 import { storage } from './storage';
 import { INITIAL_TEACHER_PROFILE } from './mockData';
@@ -34,6 +34,7 @@ function MainAppContent() {
   const [sessions, setSessions] = useState<SessionRecord[]>(() => storage.getSessions());
   const [timelines, setTimelines] = useState<TimelineMilestone[]>(() => storage.getTimelines());
   const [leads, setLeads] = useState<EnrollmentLead[]>(() => storage.getLeads());
+  const [assessments, setAssessments] = useState<CompletedAssessmentRecord[]>(() => storage.getAssessments());
 
   // Modal States
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
@@ -63,6 +64,11 @@ function MainAppContent() {
       onLeadsUpdate: (remoteLeads) => {
         if (Array.isArray(remoteLeads)) {
           setLeads(remoteLeads);
+        }
+      },
+      onAssessmentsUpdate: (remoteAssessments) => {
+        if (Array.isArray(remoteAssessments)) {
+          setAssessments(remoteAssessments);
         }
       },
       onSettingsUpdate: (creds, profile) => {
@@ -135,6 +141,43 @@ function MainAppContent() {
   useEffect(() => {
     storage.saveLeads(leads);
   }, [leads]);
+
+  useEffect(() => {
+    storage.saveAssessments(assessments);
+  }, [assessments]);
+
+  // Assessment Handlers
+  const handleSaveAssessment = (record: CompletedAssessmentRecord) => {
+    const updated = [record, ...assessments.filter((a) => a.id !== record.id)];
+    setAssessments(updated);
+    cloudService.saveAssessment(record).catch(() => {});
+
+    // Match with student
+    const target = students.find((s) => s.id === record.studentId || (record.childName && s.name.trim().toLowerCase() === record.childName.trim().toLowerCase()));
+    if (target) {
+      const updatedStudent: Student = {
+        ...target,
+        assessments: [record, ...(target.assessments || []).filter((a) => a.id !== record.id)],
+        hasNewAssessment: true,
+        lastAssessmentDate: record.date
+      };
+      setStudents(students.map((s) => (s.id === updatedStudent.id ? updatedStudent : s)));
+      cloudService.saveStudent(updatedStudent).catch(() => {});
+
+      // Add timeline milestone
+      const milestone: TimelineMilestone = {
+        id: `tm-${Date.now()}`,
+        studentId: target.id,
+        date: record.date,
+        title: `إجراء ${record.scaleTitle}`,
+        description: `النتيجة: ${record.totalScore}/20 (${record.riskLabel}) - تم حفظ وتحديث السجل التقييمي.`,
+        levelBadge: 'تقييم مقنن 📋',
+        type: 'achievement'
+      };
+      setTimelines([milestone, ...timelines]);
+      cloudService.saveTimeline(milestone).catch(() => {});
+    }
+  };
 
   // Auth Handlers
   const handleLoginSuccess = (user: CurrentUser) => {
@@ -323,6 +366,8 @@ function MainAppContent() {
               students={students}
               sessions={sessions}
               leads={leads}
+              timelines={timelines}
+              assessments={assessments}
               teacherCredentials={teacherCredentials}
               cloudSyncStatus={cloudSyncStatus}
               cloudStatusMessage={cloudStatusMessage}
@@ -345,6 +390,7 @@ function MainAppContent() {
                 setShareSessionData({ session, student });
               }}
               onAcceptLead={handleAcceptLead}
+              onSaveAssessment={handleSaveAssessment}
               onLogout={handleLogout}
             />
           ) : (
@@ -368,7 +414,9 @@ function MainAppContent() {
                   student={currentStudent}
                   sessions={sessions}
                   timelines={timelines}
+                  assessments={assessments}
                   teacherProfile={teacherProfile}
+                  onSaveAssessment={handleSaveAssessment}
                   onLogout={handleLogout}
                 />
               );

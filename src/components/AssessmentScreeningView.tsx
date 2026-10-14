@@ -12,8 +12,12 @@ import {
   Info, Award, Check
 } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
+import { storage } from '../storage';
+import { cloudService } from '../cloudFirestore';
+import { Student } from '../types';
 
 interface AssessmentScreeningViewProps {
+  studentId?: string;
   initialChildName?: string;
   initialParentName?: string;
   teacherPhone?: string;
@@ -24,10 +28,11 @@ interface AssessmentScreeningViewProps {
 }
 
 export const AssessmentScreeningView: React.FC<AssessmentScreeningViewProps> = ({
+  studentId,
   initialChildName = '',
   initialParentName = '',
   teacherPhone = '201000000000',
-  teacherName = 'الأخصائي',
+  teacherName = 'الأخصائي محمد فكري',
   onBack,
   onSaveAssessment,
   embeddedMode = false
@@ -93,8 +98,11 @@ export const AssessmentScreeningView: React.FC<AssessmentScreeningViewProps> = (
           label = selectedScale.interpretations.moderate.label;
         }
 
+        const interp = selectedScale.interpretations[level];
         const record: CompletedAssessmentRecord = {
           id: `assess-${Date.now()}`,
+          studentId: studentId,
+          studentName: childName.trim() || 'الطفل',
           scaleId: selectedScale.id,
           scaleTitle: selectedScale.title,
           childName: childName.trim() || 'الطفل',
@@ -104,8 +112,39 @@ export const AssessmentScreeningView: React.FC<AssessmentScreeningViewProps> = (
           totalScore: total,
           riskLevel: level,
           riskLabel: label,
-          date: new Date().toISOString().split('T')[0]
+          summary: interp?.summary,
+          advice: interp?.advice,
+          date: new Date().toISOString().split('T')[0],
+          createdAt: new Date().toISOString()
         };
+
+        // Automatic Persistence: local storage + Firestore
+        try {
+          const currentAssessments = storage.getAssessments();
+          storage.saveAssessments([record, ...currentAssessments.filter(a => a.id !== record.id)]);
+          cloudService.saveAssessment(record).catch(() => {});
+
+          // If linked to student, link inside student profile
+          const allStudents = storage.getStudents();
+          const targetStudent = studentId 
+            ? allStudents.find(s => s.id === studentId)
+            : allStudents.find(s => s.name.trim().toLowerCase() === record.childName.toLowerCase());
+
+          if (targetStudent) {
+            record.studentId = targetStudent.id;
+            record.studentName = targetStudent.name;
+            const updatedStudent: Student = {
+              ...targetStudent,
+              assessments: [record, ...(targetStudent.assessments || []).filter(a => a.id !== record.id)],
+              hasNewAssessment: true,
+              lastAssessmentDate: record.date
+            };
+            storage.saveStudents(allStudents.map(s => s.id === updatedStudent.id ? updatedStudent : s));
+            cloudService.saveStudent(updatedStudent).catch(() => {});
+          }
+        } catch (e) {
+          console.warn('Error saving assessment:', e);
+        }
 
         if (onSaveAssessment) {
           onSaveAssessment(record);
@@ -419,6 +458,19 @@ export const AssessmentScreeningView: React.FC<AssessmentScreeningViewProps> = (
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                 {childName ? `الطفل: ${childName}` : ''} {childAge ? `• العمر: ${childAge}` : ''} {evaluatorName ? `• المُقيّم: ${evaluatorName}` : ''}
               </p>
+            </div>
+
+            {/* Record Saved Notification Banner */}
+            <div className="p-3.5 rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 flex items-start gap-3 text-xs text-emerald-800 dark:text-emerald-300">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+              <div className="space-y-0.5 leading-relaxed">
+                <p className="font-bold">
+                  تم قيد هذا التقييم وحفظه تلقائياً في السجل السحابي للطالب لدى الأخصائي محمد فكري 📋
+                </p>
+                <p className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
+                  سيتم اعتماد النتائج ومطابقتها مع الخطة العلاجية الفردية وجدول الجلسات القادمة.
+                </p>
+              </div>
             </div>
 
             {/* Score & Risk Level Meter */}

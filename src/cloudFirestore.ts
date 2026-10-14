@@ -21,7 +21,7 @@ import {
   User as FirebaseUser 
 } from 'firebase/auth';
 import { db, auth } from './firebase';
-import { Student, SessionRecord, TimelineMilestone, EnrollmentLead, TeacherProfile, TeacherCredentials } from './types';
+import { Student, SessionRecord, TimelineMilestone, EnrollmentLead, TeacherProfile, TeacherCredentials, CompletedAssessmentRecord } from './types';
 import { storage } from './storage';
 
 // Enum and error formatting conforming to Firebase Skill specification
@@ -170,6 +170,32 @@ export const cloudService = {
     }
   },
 
+  // Save Completed Assessment Record
+  saveAssessment: async (assessment: CompletedAssessmentRecord): Promise<boolean> => {
+    const path = `assessments/${assessment.id}`;
+    try {
+      const ref = doc(db, 'assessments', assessment.id);
+      await setDoc(ref, sanitize(assessment), { merge: true });
+      return true;
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, path);
+      return false;
+    }
+  },
+
+  // Delete Completed Assessment Record
+  deleteAssessment: async (assessmentId: string): Promise<boolean> => {
+    const path = `assessments/${assessmentId}`;
+    try {
+      const ref = doc(db, 'assessments', assessmentId);
+      await deleteDoc(ref);
+      return true;
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, path);
+      return false;
+    }
+  },
+
   // Save Teacher Settings (credentials & profile)
   saveTeacherSettings: async (creds: TeacherCredentials, profile: TeacherProfile): Promise<boolean> => {
     const path = 'app_settings/teacher';
@@ -200,6 +226,7 @@ export const cloudService = {
     onSessionsUpdate: (sessions: SessionRecord[]) => void;
     onTimelinesUpdate: (timelines: TimelineMilestone[]) => void;
     onLeadsUpdate: (leads: EnrollmentLead[]) => void;
+    onAssessmentsUpdate?: (assessments: CompletedAssessmentRecord[]) => void;
     onSettingsUpdate: (creds?: TeacherCredentials, profile?: TeacherProfile) => void;
     onStatusChange: (status: CloudSyncStatus, message?: string) => void;
   }): (() => void) => {
@@ -229,11 +256,12 @@ export const cloudService = {
 
       try {
         // Fast initial fetch for authenticated specialist
-        const [studentsSnap, sessionsSnap, timelinesSnap, leadsSnap] = await Promise.all([
+        const [studentsSnap, sessionsSnap, timelinesSnap, leadsSnap, assessmentsSnap] = await Promise.all([
           getDocs(collection(db, 'students')),
           getDocs(collection(db, 'sessions')),
           getDocs(collection(db, 'timelines')),
-          getDocs(collection(db, 'leads'))
+          getDocs(collection(db, 'leads')),
+          getDocs(collection(db, 'assessments'))
         ]);
 
         if (isDisposed) return;
@@ -274,6 +302,16 @@ export const cloudService = {
           leadsSnap.forEach((d) => list.push(d.data() as EnrollmentLead));
           callbacks.onLeadsUpdate(list);
           storage.saveLeads(list);
+        }
+
+        if (!assessmentsSnap.empty) {
+          const list: CompletedAssessmentRecord[] = [];
+          assessmentsSnap.forEach((d) => list.push(d.data() as CompletedAssessmentRecord));
+          list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+          if (callbacks.onAssessmentsUpdate) {
+            callbacks.onAssessmentsUpdate(list);
+          }
+          storage.saveAssessments(list);
         }
 
         callbacks.onStatusChange('synced', `متصل بسحابة Firestore المحمية (${userEmail}) 🟢`);
@@ -323,11 +361,23 @@ export const cloudService = {
         storage.saveLeads(list);
       }, (err) => console.warn('Leads live listener notice:', err.message));
 
+      const unsubAssessments = onSnapshot(collection(db, 'assessments'), (snapshot) => {
+        if (isDisposed) return;
+        const list: CompletedAssessmentRecord[] = [];
+        snapshot.forEach((docSnap) => list.push(docSnap.data() as CompletedAssessmentRecord));
+        list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        if (callbacks.onAssessmentsUpdate) {
+          callbacks.onAssessmentsUpdate(list);
+        }
+        storage.saveAssessments(list);
+      }, (err) => console.warn('Assessments live listener notice:', err.message));
+
       unsubPrivateListeners = () => {
         unsubStudents();
         unsubSessions();
         unsubTimelines();
         unsubLeads();
+        unsubAssessments();
       };
     };
 
@@ -363,6 +413,7 @@ export const cloudService = {
       const sessions = storage.getSessions();
       const timelines = storage.getTimelines();
       const leads = storage.getLeads();
+      const assessments = storage.getAssessments();
       const creds = storage.getTeacherCredentials();
       const profile = storage.getTeacherProfile();
 
@@ -380,6 +431,9 @@ export const cloudService = {
       for (const ld of leads) {
         promises.push(setDoc(doc(db, 'leads', ld.id), sanitize(ld), { merge: true }));
       }
+      for (const ass of assessments) {
+        promises.push(setDoc(doc(db, 'assessments', ass.id), sanitize(ass), { merge: true }));
+      }
       promises.push(setDoc(doc(db, 'app_settings', 'profile'), sanitize(profile), { merge: true }));
       promises.push(setDoc(doc(db, 'app_settings', 'teacher'), {
         credentials: sanitize({ email: creds.email, googleAccount: creds.googleAccount }),
@@ -390,7 +444,7 @@ export const cloudService = {
       await Promise.all(promises);
       return { 
         success: true, 
-        count: students.length + sessions.length + timelines.length + leads.length 
+        count: students.length + sessions.length + timelines.length + leads.length + assessments.length
       };
     } catch (err: any) {
       console.error('Backup to cloud failed:', err);

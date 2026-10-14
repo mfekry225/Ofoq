@@ -1,4 +1,4 @@
-import { TeacherProfile, Student, SessionRecord, TimelineMilestone, EnrollmentLead, CurrentUser, TeacherCredentials } from './types';
+import { TeacherProfile, Student, SessionRecord, TimelineMilestone, EnrollmentLead, CurrentUser, TeacherCredentials, CompletedAssessmentRecord } from './types';
 import { INITIAL_TEACHER_PROFILE, INITIAL_STUDENTS, INITIAL_SESSIONS, INITIAL_TIMELINES, INITIAL_LEADS, DEFAULT_TEACHER_CREDENTIALS } from './mockData';
 
 const STORAGE_KEYS = {
@@ -8,6 +8,7 @@ const STORAGE_KEYS = {
   SESSIONS: 'ofoq_v1_sessions',
   TIMELINES: 'ofoq_v1_timelines',
   LEADS: 'ofoq_v1_leads',
+  ASSESSMENTS: 'ofoq_v1_assessments',
   AUTH: 'ofoq_v1_current_user',
   THEME: 'ofoq_v2_daylight_theme'
 };
@@ -114,6 +115,18 @@ export const storage = {
   },
   saveLeads: (leads: EnrollmentLead[]) => {
     localStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(leads));
+  },
+
+  getAssessments: (): CompletedAssessmentRecord[] => {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.ASSESSMENTS);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  },
+  saveAssessments: (assessments: CompletedAssessmentRecord[]) => {
+    localStorage.setItem(STORAGE_KEYS.ASSESSMENTS, JSON.stringify(assessments));
   },
 
   getCurrentUser: (): CurrentUser | null => {

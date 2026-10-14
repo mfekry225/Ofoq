@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Student, SessionRecord, TimelineMilestone, TeacherProfile } from '../types';
+import { Student, SessionRecord, TimelineMilestone, TeacherProfile, CompletedAssessmentRecord } from '../types';
 import { 
   Award, TrendingUp, Calendar, Clock, Star, BookOpen, Send, Sparkles, 
   MessageCircle, LogOut, CheckCircle2, AlertCircle, FileText, ChevronDown, 
-  CalendarClock, ShieldCheck, Heart, ArrowRight, HeartPulse, MapPin, Baby, GraduationCap, BrainCircuit
+  CalendarClock, ShieldCheck, Heart, ArrowRight, HeartPulse, MapPin, Baby, GraduationCap, BrainCircuit, Activity
 } from 'lucide-react';
 import { getWhatsAppUrl, formatDateArabic } from '../utils';
 import { calculateAgeArabic } from '../studentOptions';
@@ -14,18 +14,23 @@ interface ParentPortalProps {
   student: Student;
   sessions: SessionRecord[];
   timelines: TimelineMilestone[];
+  assessments?: CompletedAssessmentRecord[];
   teacherProfile: TeacherProfile;
   onLogout: () => void;
+  onSaveAssessment?: (record: CompletedAssessmentRecord) => void;
 }
 
 export const ParentPortal: React.FC<ParentPortalProps> = ({
   student,
   sessions,
   timelines,
+  assessments = [],
   teacherProfile,
   onLogout,
+  onSaveAssessment,
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'sessions' | 'timeline' | 'assessments'>('overview');
+  const [showAssessmentRunner, setShowAssessmentRunner] = useState(false);
 
   // Filter sessions for this student ONLY (Strict Isolation)
   const studentSessions = sessions.filter((s) => s.studentId === student.id);
@@ -419,13 +424,139 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
         {/* TAB 4: RAPID ASSESSMENT SCALES (10 ITEMS EACH) */}
         {activeTab === 'assessments' && (
           <div className="space-y-4">
-            <AssessmentScreeningView
-              embeddedMode={true}
-              initialChildName={student.name}
-              initialParentName={student.parentName}
-              teacherPhone={teacherProfile.whatsapp}
-              teacherName={teacherProfile.name}
-            />
+            {/* If user clicked to take new scale, show runner */}
+            {showAssessmentRunner ? (
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAssessmentRunner(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-[#0f172a] hover:bg-slate-200 dark:hover:bg-[#152244] text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 transition cursor-pointer border border-slate-200 dark:border-blue-900/40"
+                >
+                  <ArrowRight className="w-4 h-4" />
+                  <span>العودة لسجل تقييمات {student.name}</span>
+                </button>
+                <AssessmentScreeningView
+                  embeddedMode={true}
+                  studentId={student.id}
+                  initialChildName={student.name}
+                  initialParentName={student.parentName}
+                  teacherPhone={teacherProfile.whatsapp}
+                  teacherName={teacherProfile.name}
+                  onSaveAssessment={(record) => {
+                    if (onSaveAssessment) onSaveAssessment(record);
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Header Card */}
+                <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg shadow-blue-600/15">
+                  <div className="space-y-1 text-center sm:text-right">
+                    <div className="flex items-center justify-center sm:justify-start gap-2">
+                      <span className="p-2 rounded-xl bg-white/20 backdrop-blur-xs">
+                        <FileText className="w-5 h-5 text-white" />
+                      </span>
+                      <h3 className="text-base sm:text-lg font-bold">المقاييس الاسترشادية المعتمدة (10 بنود)</h3>
+                    </div>
+                    <p className="text-xs text-blue-100 max-w-lg">
+                      أدوات مسحية سريعة وضعها الأخصائي {teacherProfile.name} لتمكين الأسرة من رصد المؤشرات النمائية واللغوية وسرعة مطابقتها في الخطة العلاجية.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowAssessmentRunner(true)}
+                    className="w-full sm:w-auto px-5 py-2.5 bg-white text-blue-700 hover:bg-blue-50 font-black text-xs rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+                  >
+                    <Sparkles className="w-4 h-4 text-blue-600" />
+                    <span>إجراء مقياس جديد للطفل</span>
+                  </button>
+                </div>
+
+                {/* List of Previous Assessments */}
+                {(() => {
+                  const studentAssessmentList = (student.assessments && student.assessments.length > 0)
+                    ? student.assessments
+                    : assessments.filter(a => a.studentId === student.id || a.childName === student.name);
+
+                  if (studentAssessmentList.length === 0) {
+                    return (
+                      <div className="bg-white dark:bg-[#0f172a] border border-sky-100 dark:border-blue-900/40 rounded-3xl p-8 sm:p-12 text-center space-y-3 shadow-xs">
+                        <FileText className="w-12 h-12 text-slate-400 dark:text-slate-500 mx-auto" />
+                        <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">لم يتم تسجيل تقييمات سابقة للطالب بعد</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                          يمكنك كولي أمر إجراء مقياس تقييمي استرشادي (10 أسئلة سريعة) وسيتم حفظ النتائج فوراً في ملف الطالب لدى الأخصائي {teacherProfile.name}.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setShowAssessmentRunner(true)}
+                          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition cursor-pointer inline-flex items-center gap-1.5"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          <span>ابدأ التقييم الأول الآن</span>
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 px-1">
+                        <span>التقييمات المسجلة في ملف الطالب ({studentAssessmentList.length}):</span>
+                        <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">✓ محفوظة بسجل الأخصائي</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                        {studentAssessmentList.map((rec) => (
+                          <div
+                            key={rec.id}
+                            className="bg-white dark:bg-[#0f172a] rounded-2xl p-4 sm:p-5 border border-sky-100 dark:border-blue-900/40 space-y-3 shadow-xs"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 block">{rec.date}</span>
+                                <h4 className="font-bold text-sm text-slate-900 dark:text-white">{rec.scaleTitle}</h4>
+                              </div>
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                                rec.riskLevel === 'low'
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200'
+                                  : rec.riskLevel === 'moderate'
+                                  ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200'
+                                  : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200'
+                              }`}>
+                                {rec.riskLabel || (rec.riskLevel === 'low' ? 'مؤشرات منخفضة' : rec.riskLevel === 'moderate' ? 'مؤشرات متوسطة' : 'مؤشرات ملحوظة')}
+                              </span>
+                            </div>
+
+                            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#080d1a] border border-slate-100 dark:border-blue-900/40 flex items-center justify-between text-xs">
+                              <span className="text-slate-500 dark:text-slate-400">الدرجة الكلية:</span>
+                              <strong className="text-slate-900 dark:text-white tabular-nums">{rec.totalScore} / 20</strong>
+                            </div>
+
+                            {rec.summary && (
+                              <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-3 leading-relaxed font-medium">
+                                {rec.summary}
+                              </p>
+                            )}
+
+                            {rec.advice && rec.advice.length > 0 && (
+                              <div className="pt-2 border-t border-slate-100 dark:border-blue-900/30 space-y-1">
+                                <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 block">
+                                  إرشادات الخطة المعتمدة:
+                                </span>
+                                <p className="text-[11px] text-blue-700 dark:text-blue-300 line-clamp-2">
+                                  • {rec.advice[0]}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
           </div>
         )}
       </div>

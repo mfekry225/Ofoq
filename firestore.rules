@@ -44,7 +44,10 @@ service cloud.firestore {
              (!('levelScore' in data) || (data.levelScore is number)) &&
              (!('totalSessions' in data) || (data.totalSessions is number)) &&
              (!('completedSessions' in data) || (data.completedSessions is number)) &&
-             (!('remainingSessions' in data) || (data.remainingSessions is number));
+             (!('remainingSessions' in data) || (data.remainingSessions is number)) &&
+             (!('assessments' in data) || (data.assessments is list)) &&
+             (!('hasNewAssessment' in data) || (data.hasNewAssessment is bool)) &&
+             (!('lastAssessmentDate' in data) || (data.lastAssessmentDate is string));
     }
 
     function isValidSession(data) {
@@ -148,6 +151,16 @@ service cloud.firestore {
       allow read, list: if isSpecialist();
       allow create, update: if isSpecialist() && isValidId(timelineId) && isValidTimeline(incoming());
       allow delete: if isSpecialist() && isValidId(timelineId);
+    }
+
+    // ----------------------------------------------------
+    // 7. ASSESSMENTS (SCREENING & CLINICAL SCALES)
+    // ----------------------------------------------------
+    match /assessments/{assessmentId} {
+      // Parents or visitors can submit an assessment record
+      allow create: if isValidId(assessmentId);
+      // ONLY the authenticated specialist can inspect, list, update, or remove
+      allow read, list, update, delete: if isSpecialist();
     }
 
     // ----------------------------------------------------
