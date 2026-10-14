@@ -32,7 +32,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
   // Google Link state
   const defaultGoogle: GoogleAccountLink = currentCredentials.googleAccount || {
     linked: true,
-    email: 'mfekry225@gmail.com',
+    email: 'mfekry225@outlook.com',
     name: 'أ. محمد فكري (حساب Google)',
     linkedAt: new Date().toISOString().split('T')[0]
   };
@@ -53,7 +53,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
         setGoogleAccount(prev => ({
           ...prev,
           linked: true,
-          email: user.email || 'mfekry225@gmail.com',
+          email: user.email || 'mfekry225@outlook.com',
           name: user.displayName || 'أ. محمد فكري (حساب Google)',
           linkedAt: prev.linkedAt || new Date().toISOString().split('T')[0]
         }));
@@ -116,7 +116,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
     try {
       const res = await cloudAuth.loginWithGoogle();
       if (res.success && res.user) {
-        const userEmail = res.user.email || 'mfekry225@gmail.com';
+        const userEmail = res.user.email || 'mfekry225@outlook.com';
         const updatedLink: GoogleAccountLink = {
           linked: true,
           email: userEmail,
@@ -151,7 +151,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
     await cloudAuth.logout();
     const updatedLink: GoogleAccountLink = {
       linked: false,
-      email: googleAccount.email || 'mfekry225@gmail.com',
+      email: googleAccount.email || 'mfekry225@outlook.com',
     };
     setGoogleAccount(updatedLink);
     onSave({
@@ -276,7 +276,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full bg-slate-50 dark:bg-[#080d1a] border border-slate-200 dark:border-blue-900/50 rounded-xl pr-10 pl-3 py-2.5 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-hidden focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-[#0b1326] transition"
-                      placeholder="مثال: mfekry225@gmail.com"
+                      placeholder="مثال: mfekry225@outlook.com"
                     />
                     <Mail className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5" />
                   </div>
@@ -385,8 +385,8 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                       </span>
                       <span className="text-xs text-slate-600 dark:text-slate-400 block mt-0.5 break-words">
                         {currentUser
-                          ? `تم تسجيل الدخول وتفعيل الحفظ السحابي التلقائي بحساب: ${currentUser.email || 'mfekry225@gmail.com'}`
-                          : 'قم بتسجيل الدخول بحساب Google المعتمد (mfekry225@gmail.com) لتفعيل الحفظ السحابي التلقائي'}
+                          ? `تم تسجيل الدخول وتفعيل الحفظ السحابي التلقائي بحساب: ${currentUser.email || 'mfekry225@outlook.com'}`
+                          : 'قم بتسجيل الدخول بحساب Google أو البريد (mfekry225@outlook.com) لتفعيل الحفظ السحابي التلقائي'}
                       </span>
                     </div>
                   </div>
@@ -452,7 +452,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                           )}
                         </div>
                         <p className="text-slate-600 dark:text-slate-400 text-xs font-mono mt-0.5 break-all">
-                          {currentUser?.email || googleAccount.email || 'mfekry225@gmail.com'}
+                          {currentUser?.email || googleAccount.email || 'mfekry225@outlook.com'}
                         </p>
                       </div>
                     </div>
@@ -482,7 +482,7 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                   </div>
 
                   <div className="border-t border-slate-200/80 dark:border-blue-900/30 pt-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-slate-500 dark:text-slate-400">
-                    <span>حالة المزامنة: {currentUser || googleAccount.linked ? 'موثق ومعتمد للمشروع سحابياً' : 'متوقف'}</span>
+                    <span>حالة المزامنة: {currentUser || googleAccount.linked ? 'موثق للمشروع سحابياً' : 'متوقف'}</span>
                     <span>المالك: أ. محمد فكري</span>
                   </div>
                 </div>
@@ -494,10 +494,10 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
                     <span>تأكيد الخصوصية وسلاسة الدخول:</span>
                   </div>
                   <p>
-                    • شاشة تسجيل الدخول تتيح الدخول بكلمة المرور أو بحساب Google المعتمد.
+                    • شاشة تسجيل الدخول تتيح الدخول بكلمة المرور أو بالحساب الخاص بك.
                   </p>
                   <p>
-                    • ربط حساب Google الخاص بك (<strong className="font-mono">mfekry225@gmail.com</strong>) يضمن توثيق ملكية النظام وتأمين وصولك الإداري وقاعدة بيانات Firestore دائماً.
+                    • تسجيل الدخول ببريدك الخاص (<strong className="font-mono">mfekry225@outlook.com</strong>) يضمن توثيق ملكية النظام وتأمين وصولك الإداري وقاعدة بيانات Firestore دائماً.
                   </p>
                 </div>
 

@@ -181,5 +181,7 @@ export interface CurrentUser {
   role: Role;
   studentId?: string; // If role is parent, holds the studentId
   name: string;
+  email?: string;
   phone?: string;
+  student?: Student;
 }

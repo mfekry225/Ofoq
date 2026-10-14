@@ -297,7 +297,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
                     <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    <span>موقف الجلسات المعتمدة</span>
+                    <span>موقف الجلسات والتقدم</span>
                   </h3>
                   <span className="text-xs font-bold text-blue-700 dark:text-blue-400 tabular-nums">
                     {student.completedSessions} من {student.totalSessions} جلسة ({student.totalSessions > 0 ? Math.round((student.completedSessions / student.totalSessions) * 100) : 0}%)
@@ -457,7 +457,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                   <FileText className="w-12 h-12 text-slate-400 mx-auto" />
                   <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">لا توجد تقييمات مسجلة بعد لهذا الطالب</h4>
                   <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                    يمكنك كأخصائي تطبيق أي مقياس من المقاييس المعتمدة (لغوي، توحد، صعوبات نمائية، طلاقة كلام) وتسجيله مباشرة في ملف الطالب.
+                    يمكنك كأخصائي تطبيق أي مقياس من المقاييس الاسترشادية (لغوي، توحد، صعوبات نمائية، طلاقة كلام) وتسجيله مباشرة في ملف الطالب.
                   </p>
                   <button
                     type="button"

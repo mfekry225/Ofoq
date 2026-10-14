@@ -447,7 +447,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 </span>
               ) : (
                 <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400">
-                  {assessments.length > 0 ? `${assessments.length} نتائج مسجلة` : '4 مقاييس معتمدة'}
+                  {assessments.length > 0 ? `${assessments.length} نتائج مسجلة` : '4 مقاييس (10 بنود)'}
                 </span>
               )}
             </div>

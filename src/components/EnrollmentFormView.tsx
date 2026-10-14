@@ -145,7 +145,7 @@ ${formData.motherPhone ? `📱 *هاتف الأم:* ${formData.motherPhone}` : '
                     <div className="flex items-center gap-1.5">
                       <h3 className="font-black text-base text-slate-900 dark:text-white">{teacherProfile.name}</h3>
                       <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 text-[10px] font-bold border border-blue-200 dark:border-blue-800/40">
-                        أخصائي معتمد
+                        أخصائي نطق وتخاطب
                       </span>
                     </div>
                     <p className="text-xs text-blue-700 dark:text-blue-400 font-semibold">{teacherProfile.title}</p>

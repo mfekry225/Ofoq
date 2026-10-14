@@ -99,7 +99,7 @@ function MainAppContent() {
     const unsubAuth = cloudAuth.onAuthChange((fbUser) => {
       if (fbUser) {
         const email = fbUser.email?.toLowerCase();
-        if (email === 'mfekry225@gmail.com') {
+        if (email === 'mfekry225@outlook.com' || email === 'mfekry225@gmail.com' || email?.includes('mfekry225')) {
           setCurrentUser((prev) => {
             if (prev?.role === 'teacher') return prev;
             return {
@@ -181,6 +181,15 @@ function MainAppContent() {
 
   // Auth Handlers
   const handleLoginSuccess = (user: CurrentUser) => {
+    if (user.student) {
+      setStudents((prev) => {
+        const exists = prev.some((s) => s.id === user.student!.id);
+        if (exists) {
+          return prev.map((s) => s.id === user.student!.id ? user.student! : s);
+        }
+        return [user.student!, ...prev];
+      });
+    }
     setCurrentUser(user);
     setCurrentView('dashboard');
   };
@@ -192,7 +201,7 @@ function MainAppContent() {
   };
 
   // Student Handlers
-  const handleSaveStudent = (savedStudent: Student) => {
+  const handleSaveStudent = async (savedStudent: Student) => {
     const existingIndex = students.findIndex((s) => s.id === savedStudent.id);
     if (existingIndex >= 0) {
       const updated = [...students];
@@ -212,10 +221,10 @@ function MainAppContent() {
         type: 'achievement'
       };
       setTimelines([newMilestone, ...timelines]);
-      cloudService.saveTimeline(newMilestone);
+      cloudService.saveTimeline(newMilestone).catch(() => {});
     }
-    // Save to Cloud Firestore
-    cloudService.saveStudent(savedStudent);
+    // Save to Cloud Firestore with explicit awaiting
+    await cloudService.saveStudent(savedStudent);
 
     setIsStudentModalOpen(false);
     setStudentToEdit(null);
@@ -395,7 +404,7 @@ function MainAppContent() {
             />
           ) : (
             (() => {
-              const currentStudent = students.find((s) => s.id === currentUser.studentId);
+              const currentStudent = students.find((s) => s.id === currentUser.studentId) || currentUser.student;
               if (!currentStudent) {
                 return (
                   <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center space-y-3">

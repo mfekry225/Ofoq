@@ -76,8 +76,9 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
 
     const cleanLower = inputUser.toLowerCase();
 
-    // Check silently if the user is the specialist/owner (e.g. mfekry225@gmail.com, mfekry225, admin, teacher)
+    // Check silently if the user is the specialist/owner (e.g. mfekry225@outlook.com, mfekry225@gmail.com, mfekry225, admin, teacher)
     const isSpecialistTarget = 
+      cleanLower === 'mfekry225@outlook.com' ||
       cleanLower === 'mfekry225@gmail.com' ||
       cleanLower.includes('mfekry225') ||
       cleanLower === (teacherProfile.email || '').toLowerCase() ||
@@ -89,7 +90,7 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
     if (isSpecialistTarget) {
       // Hidden specialist authentication via Firebase Auth
       try {
-        const targetEmail = cleanLower.includes('@') ? cleanLower : 'mfekry225@gmail.com';
+        const targetEmail = cleanLower.includes('@') ? cleanLower : (teacherProfile.email || 'mfekry225@outlook.com');
         const authResult = await cloudAuth.loginTeacher(targetEmail, inputPass);
 
         if (authResult.success) {
@@ -112,8 +113,8 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
       }
     }
 
-    // Otherwise: authenticate as a parent/student seamlessly
-    const matchedStudent = students.find((s) => {
+    // Otherwise: authenticate as a parent/student seamlessly (checking memory and Cloud Firestore)
+    let matchedStudent = students.find((s) => {
       const matchUser = 
         (s.parentUsername && s.parentUsername.trim().toLowerCase() === cleanLower) ||
         (s.parentPhone && s.parentPhone.replace(/[^0-9]/g, '') === inputUser.replace(/[^0-9]/g, '')) ||
@@ -129,6 +130,18 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
       return matchUser && matchPass;
     });
 
+    // If not found in local memory, query Cloud Firestore directly (supports any phone, tablet, or fresh browser)
+    if (!matchedStudent) {
+      try {
+        const cloudResult = await cloudAuth.loginParent(inputUser, inputPass);
+        if (cloudResult.success && cloudResult.student) {
+          matchedStudent = cloudResult.student;
+        }
+      } catch (cloudErr) {
+        console.warn('Direct Firestore parent lookup notice:', cloudErr);
+      }
+    }
+
     if (matchedStudent) {
       setIsSubmitting(false);
       onLoginSuccess({
@@ -136,13 +149,14 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
         studentId: matchedStudent.id,
         name: matchedStudent.parentName,
         phone: matchedStudent.parentPhone,
+        student: matchedStudent,
       });
       return;
     }
 
     // If no match found
     setIsSubmitting(false);
-    setErrorMsg('اسم المستخدم أو كلمة المرور غير صحيحة. يرجى التحقق من صحة البيانات.');
+    setErrorMsg('اسم المستخدم أو كلمة المرور غير صحيحة. يرجى التحقق من بيانات الدخول.');
   };
 
 
@@ -151,11 +165,11 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
     const inputUser = identifier.trim().toLowerCase();
     
     // If input is owner's email or empty
-    if (!inputUser || inputUser === 'mfekry225@gmail.com' || inputUser.includes('mfekry225') || inputUser === 'admin') {
+    if (!inputUser || inputUser === 'mfekry225@outlook.com' || inputUser === 'mfekry225@gmail.com' || inputUser.includes('mfekry225') || inputUser === 'admin') {
       setIsResetting(true);
       setErrorMsg('');
       setSuccessMsg('');
-      const targetEmail = inputUser.includes('@') ? inputUser : 'mfekry225@gmail.com';
+      const targetEmail = inputUser.includes('@') ? inputUser : (teacherProfile.email || 'mfekry225@outlook.com');
       const res = await cloudAuth.sendPasswordReset(targetEmail);
       setIsResetting(false);
       if (res.success) {

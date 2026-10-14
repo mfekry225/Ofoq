@@ -456,7 +456,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({
                       <span className="p-2 rounded-xl bg-white/20 backdrop-blur-xs">
                         <FileText className="w-5 h-5 text-white" />
                       </span>
-                      <h3 className="text-base sm:text-lg font-bold">المقاييس الاسترشادية المعتمدة (10 بنود)</h3>
+                      <h3 className="text-base sm:text-lg font-bold">المقاييس الاسترشادية المتخصصة (10 بنود)</h3>
                     </div>
                     <p className="text-xs text-blue-100 max-w-lg">
                       أدوات مسحية سريعة وضعها الأخصائي {teacherProfile.name} لتمكين الأسرة من رصد المؤشرات النمائية واللغوية وسرعة مطابقتها في الخطة العلاجية.

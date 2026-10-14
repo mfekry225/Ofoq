@@ -23,7 +23,7 @@ export const storage = {
           parsed.googleAccount = DEFAULT_TEACHER_CREDENTIALS.googleAccount;
         }
         return {
-          email: parsed.email || 'mfekry225@gmail.com',
+          email: parsed.email === 'mfekry225@gmail.com' ? 'mfekry225@outlook.com' : (parsed.email || 'mfekry225@outlook.com'),
           password: '', // Firebase Auth handles password
           googleAccount: parsed.googleAccount
         };
@@ -49,7 +49,12 @@ export const storage = {
           !parsed.title?.includes('نطق') ||
           !parsed.specialistDuties ||
           !parsed.familySupport;
-        if (hasLegacySoftware) {
+        const needsUpdate = 
+          hasLegacySoftware ||
+          parsed.email !== 'mfekry225@outlook.com' ||
+          !parsed.bio?.includes('تعديل') ||
+          JSON.stringify(parsed.certifications || []).includes('مرخص');
+        if (needsUpdate) {
           localStorage.setItem(STORAGE_KEYS.TEACHER_PROFILE, JSON.stringify(INITIAL_TEACHER_PROFILE));
           return INITIAL_TEACHER_PROFILE;
         }

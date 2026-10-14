@@ -119,7 +119,7 @@ const SelectWithCustomInput: React.FC<SelectWithCustomInputProps> = ({
 
 interface StudentModalProps {
   studentToEdit?: Student | null;
-  onSaveStudent: (student: Student) => void;
+  onSaveStudent: (student: Student) => Promise<void> | void;
   onClose: () => void;
 }
 
@@ -128,6 +128,7 @@ export const StudentModal: React.FC<StudentModalProps> = ({
   onSaveStudent,
   onClose,
 }) => {
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<Partial<Student>>({
     name: studentToEdit?.name || '',
     subject: studentToEdit?.subject || REHAB_PATHWAYS[0],
@@ -170,10 +171,11 @@ export const StudentModal: React.FC<StudentModalProps> = ({
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.parentName || !formData.parentPhone) return;
 
+    setIsSaving(true);
     const savedStudent: Student = {
       id: studentToEdit?.id || `std-${Date.now()}`,
       name: formData.name.trim(),
@@ -199,7 +201,11 @@ export const StudentModal: React.FC<StudentModalProps> = ({
       notes: formData.notes?.trim() || undefined,
     };
 
-    onSaveStudent(savedStudent);
+    try {
+      await onSaveStudent(savedStudent);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -458,9 +464,12 @@ export const StudentModal: React.FC<StudentModalProps> = ({
                   />
                 </div>
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                يقوم ولي الأمر بتسجيل الدخول من الشاشة الرئيسية باستخدام اسم المستخدم وكلمة المرور هذه لمتابعة تطورات ابنه حصراً وبخصوصية تامة.
-              </p>
+              <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 flex items-start gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-emerald-900 dark:text-emerald-200 font-medium leading-relaxed">
+                  حساب ولي الأمر وكلمة المرور يتم حفظهما وتشفيرهما في Firebase سحابياً 100%، مما يتيح للأب أو الأم الدخول فورياً من أي هاتف أو متصفح أو جهاز آخر ومتابعة حالة ابنهما بدقة ومزامنة كاملة.
+                </p>
+              </div>
             </div>
           </div>
 
@@ -516,8 +525,9 @@ export const StudentModal: React.FC<StudentModalProps> = ({
           <div className="pt-3 border-t border-slate-100 dark:border-blue-900/30 flex items-center justify-between gap-3">
             <button
               type="button"
+              disabled={isSaving}
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-[#152244] hover:bg-slate-200 dark:hover:bg-[#1e2f5c] text-slate-600 dark:text-slate-300 font-bold transition cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-[#152244] hover:bg-slate-200 dark:hover:bg-[#1e2f5c] text-slate-600 dark:text-slate-300 font-bold transition cursor-pointer disabled:opacity-50"
             >
               إلغاء
             </button>
@@ -525,10 +535,20 @@ export const StudentModal: React.FC<StudentModalProps> = ({
             <button
               id="save-student-submit-btn"
               type="submit"
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold shadow-md shadow-blue-600/20 transition flex items-center gap-2 cursor-pointer"
+              disabled={isSaving}
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-60 text-white font-bold shadow-md shadow-blue-600/20 transition flex items-center gap-2 cursor-pointer"
             >
-              <CheckCircle2 className="w-4 h-4 text-white" />
-              <span>{studentToEdit ? 'حفظ التعديلات' : 'إضافة الطالب وتفعيل الحساب'}</span>
+              {isSaving ? (
+                <>
+                  <RefreshCw className="w-4 h-4 text-white animate-spin" />
+                  <span>جاري المزامنة مع سحابة Firebase...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-white" />
+                  <span>{studentToEdit ? 'حفظ التعديلات في Firebase' : 'إضافة الطالب وتفعيل الحساب سحابياً'}</span>
+                </>
+              )}
             </button>
           </div>
         </form>

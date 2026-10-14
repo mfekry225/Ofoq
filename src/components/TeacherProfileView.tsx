@@ -72,8 +72,8 @@ export const TeacherProfileView: React.FC<TeacherProfileViewProps> = ({
                   </span>
                 )}
                 <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300 text-xs font-bold">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span>ممارس مرخص ومعتمد</span>
+                  <Target className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>تأهيل وتعديل لغوي مباشر</span>
                 </span>
               </div>
 
@@ -375,18 +375,24 @@ export const TeacherProfileView: React.FC<TeacherProfileViewProps> = ({
 
                 <a
                   href={`tel:${profile.phone}`}
-                  className="w-full py-3 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 flex items-center justify-center gap-2 transition cursor-pointer"
+                  className="w-full py-3 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 flex items-center justify-between gap-2 transition cursor-pointer"
                 >
-                  <Phone className="w-4 h-4 text-sky-200" />
-                  <span>اتصال هاتفي ({profile.phone})</span>
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-sky-200" />
+                    <span>اتصال هاتفي</span>
+                  </div>
+                  <span className="font-mono text-sky-200 text-xs dir-ltr" dir="ltr">{profile.phone}</span>
                 </a>
 
                 <a
                   href={`mailto:${profile.email}`}
-                  className="w-full py-3 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 flex items-center justify-center gap-2 transition cursor-pointer"
+                  className="w-full py-3 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 flex items-center justify-between gap-2 transition cursor-pointer"
                 >
-                  <Mail className="w-4 h-4 text-sky-200" />
-                  <span>مراسلة عبر البريد الإلكتروني</span>
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-sky-200" />
+                    <span>البريد الإلكتروني</span>
+                  </div>
+                  <span className="font-mono text-sky-200 text-xs">{profile.email}</span>
                 </a>
               </div>
 

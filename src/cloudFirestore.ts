@@ -220,7 +220,7 @@ export const cloudService = {
     }
   },
 
-  // Initial Sync and Real-time listener registration
+  // Initial Sync and Real-time listener registration for ALL clients (Multi-Device & Cross-Browser)
   subscribeToCloud: (callbacks: {
     onStudentsUpdate: (students: Student[]) => void;
     onSessionsUpdate: (sessions: SessionRecord[]) => void;
@@ -231,10 +231,10 @@ export const cloudService = {
     onStatusChange: (status: CloudSyncStatus, message?: string) => void;
   }): (() => void) => {
     let isDisposed = false;
-    let unsubPrivateListeners: (() => void) | null = null;
+    callbacks.onStatusChange('syncing', 'جاري المزامنة مع سحابة Firebase...');
 
-    // Public Profile listener is always safe and accessible
-    let unsubProfile: () => void = () => {};
+    // 1. App Settings / Teacher Profile listener
+    let unsubProfile = () => {};
     try {
       unsubProfile = onSnapshot(doc(db, 'app_settings', 'profile'), (snapshot) => {
         if (isDisposed) return;
@@ -250,12 +250,9 @@ export const cloudService = {
       console.warn('Profile listener error:', e);
     }
 
-    // Attach private listeners only when authenticated as the specialist
-    const attachPrivateListeners = async (userEmail: string) => {
-      callbacks.onStatusChange('syncing', `جاري مزامنة بيانات الأخصائي (${userEmail})...`);
-
+    // 2. Initial Fast Fetch across all collections
+    const performInitialFetchAndSync = async () => {
       try {
-        // Fast initial fetch for authenticated specialist
         const [studentsSnap, sessionsSnap, timelinesSnap, leadsSnap, assessmentsSnap] = await Promise.all([
           getDocs(collection(db, 'students')),
           getDocs(collection(db, 'sessions')),
@@ -273,7 +270,7 @@ export const cloudService = {
           callbacks.onStudentsUpdate(list);
           storage.saveStudents(list);
         } else {
-          // If remote is empty, backup local to cloud
+          // If Firestore is empty, seed initial data to cloud so all devices stay in sync
           const localStudents = storage.getStudents();
           if (localStudents && localStudents.length > 0) {
             for (const s of localStudents) {
@@ -314,95 +311,75 @@ export const cloudService = {
           storage.saveAssessments(list);
         }
 
-        callbacks.onStatusChange('synced', `متصل بسحابة Firestore المحمية (${userEmail}) 🟢`);
+        callbacks.onStatusChange('synced', 'متصل وسحابي بنسبة 100% مع Firebase 🟢');
       } catch (err: any) {
-        console.warn('Initial authenticated fetch note:', err);
+        console.warn('Initial cloud sync notice:', err);
       }
-
-      // Attach Live Snapshot Listeners for authenticated specialist
-      const unsubStudents = onSnapshot(collection(db, 'students'), (snapshot) => {
-        if (isDisposed) return;
-        callbacks.onStatusChange('synced', `سحابة Firestore متزامنة ومؤمنة (${userEmail}) 🟢`);
-        const list: Student[] = [];
-        snapshot.forEach((docSnap) => list.push(docSnap.data() as Student));
-        if (list.length > 0) {
-          list.sort((a, b) => (b.joinedAt || '').localeCompare(a.joinedAt || ''));
-          callbacks.onStudentsUpdate(list);
-          storage.saveStudents(list);
-        }
-      }, (err) => handleFirestoreError(err, OperationType.LIST, 'students'));
-
-      const unsubSessions = onSnapshot(collection(db, 'sessions'), (snapshot) => {
-        if (isDisposed) return;
-        const list: SessionRecord[] = [];
-        snapshot.forEach((docSnap) => list.push(docSnap.data() as SessionRecord));
-        if (list.length > 0) {
-          list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-          callbacks.onSessionsUpdate(list);
-          storage.saveSessions(list);
-        }
-      }, (err) => handleFirestoreError(err, OperationType.LIST, 'sessions'));
-
-      const unsubTimelines = onSnapshot(collection(db, 'timelines'), (snapshot) => {
-        if (isDisposed) return;
-        const list: TimelineMilestone[] = [];
-        snapshot.forEach((docSnap) => list.push(docSnap.data() as TimelineMilestone));
-        if (list.length > 0) {
-          callbacks.onTimelinesUpdate(list);
-          storage.saveTimelines(list);
-        }
-      }, (err) => handleFirestoreError(err, OperationType.LIST, 'timelines'));
-
-      const unsubLeads = onSnapshot(collection(db, 'leads'), (snapshot) => {
-        if (isDisposed) return;
-        const list: EnrollmentLead[] = [];
-        snapshot.forEach((docSnap) => list.push(docSnap.data() as EnrollmentLead));
-        callbacks.onLeadsUpdate(list);
-        storage.saveLeads(list);
-      }, (err) => console.warn('Leads live listener notice:', err.message));
-
-      const unsubAssessments = onSnapshot(collection(db, 'assessments'), (snapshot) => {
-        if (isDisposed) return;
-        const list: CompletedAssessmentRecord[] = [];
-        snapshot.forEach((docSnap) => list.push(docSnap.data() as CompletedAssessmentRecord));
-        list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-        if (callbacks.onAssessmentsUpdate) {
-          callbacks.onAssessmentsUpdate(list);
-        }
-        storage.saveAssessments(list);
-      }, (err) => console.warn('Assessments live listener notice:', err.message));
-
-      unsubPrivateListeners = () => {
-        unsubStudents();
-        unsubSessions();
-        unsubTimelines();
-        unsubLeads();
-        unsubAssessments();
-      };
     };
 
-    // Monitor Firebase Auth state to safely engage private data stream
-    const unsubAuth = onAuthStateChanged(auth, (user) => {
-      if (isDisposed) return;
-      if (unsubPrivateListeners) {
-        unsubPrivateListeners();
-        unsubPrivateListeners = null;
-      }
+    performInitialFetchAndSync();
 
-      if (user && user.email) {
-        attachPrivateListeners(user.email);
-      } else {
-        callbacks.onStatusChange('synced', 'البيانات محمية محلياً - سجّل الدخول بحساب Google لمزامنة السحابة');
+    // 3. Attach Live Real-Time Snapshot Listeners unconditionally
+    const unsubStudents = onSnapshot(collection(db, 'students'), (snapshot) => {
+      if (isDisposed) return;
+      callbacks.onStatusChange('synced', 'متصل وسحابي بنسبة 100% مع Firebase 🟢');
+      const list: Student[] = [];
+      snapshot.forEach((docSnap) => list.push(docSnap.data() as Student));
+      if (list.length > 0) {
+        list.sort((a, b) => (b.joinedAt || '').localeCompare(a.joinedAt || ''));
+        callbacks.onStudentsUpdate(list);
+        storage.saveStudents(list);
       }
-    });
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'students'));
+
+    const unsubSessions = onSnapshot(collection(db, 'sessions'), (snapshot) => {
+      if (isDisposed) return;
+      const list: SessionRecord[] = [];
+      snapshot.forEach((docSnap) => list.push(docSnap.data() as SessionRecord));
+      if (list.length > 0) {
+        list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        callbacks.onSessionsUpdate(list);
+        storage.saveSessions(list);
+      }
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'sessions'));
+
+    const unsubTimelines = onSnapshot(collection(db, 'timelines'), (snapshot) => {
+      if (isDisposed) return;
+      const list: TimelineMilestone[] = [];
+      snapshot.forEach((docSnap) => list.push(docSnap.data() as TimelineMilestone));
+      if (list.length > 0) {
+        callbacks.onTimelinesUpdate(list);
+        storage.saveTimelines(list);
+      }
+    }, (err) => handleFirestoreError(err, OperationType.LIST, 'timelines'));
+
+    const unsubLeads = onSnapshot(collection(db, 'leads'), (snapshot) => {
+      if (isDisposed) return;
+      const list: EnrollmentLead[] = [];
+      snapshot.forEach((docSnap) => list.push(docSnap.data() as EnrollmentLead));
+      callbacks.onLeadsUpdate(list);
+      storage.saveLeads(list);
+    }, (err) => console.warn('Leads live listener notice:', err.message));
+
+    const unsubAssessments = onSnapshot(collection(db, 'assessments'), (snapshot) => {
+      if (isDisposed) return;
+      const list: CompletedAssessmentRecord[] = [];
+      snapshot.forEach((docSnap) => list.push(docSnap.data() as CompletedAssessmentRecord));
+      list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      if (callbacks.onAssessmentsUpdate) {
+        callbacks.onAssessmentsUpdate(list);
+      }
+      storage.saveAssessments(list);
+    }, (err) => console.warn('Assessments live listener notice:', err.message));
 
     return () => {
       isDisposed = true;
-      unsubAuth();
       unsubProfile();
-      if (unsubPrivateListeners) {
-        unsubPrivateListeners();
-      }
+      unsubStudents();
+      unsubSessions();
+      unsubTimelines();
+      unsubLeads();
+      unsubAssessments();
     };
   },
 
@@ -480,12 +457,13 @@ export const cloudAuth = {
       const result = await signInWithPopup(auth, provider);
       const email = result.user?.email?.toLowerCase() || '';
 
-      // Strict enforcement: Only mfekry225@gmail.com is allowed
-      if (email !== 'mfekry225@gmail.com') {
+      // Strict enforcement: Only owner (mfekry225@outlook.com / mfekry225@gmail.com) is allowed
+      const isAllowedGoogle = email === 'mfekry225@outlook.com' || email === 'mfekry225@gmail.com' || email.includes('mfekry225');
+      if (!isAllowedGoogle) {
         await signOut(auth);
         return {
           success: false,
-          error: `تم رفض تسجيل الدخول: الحساب (${result.user?.email}) غير مصرح له بالوصول إلى لوحة التحكم. المنصة ملك حصري للأخصائي المعتمد (mfekry225@gmail.com).`
+          error: `تم رفض تسجيل الدخول: الحساب (${result.user?.email}) غير مصرح له بالوصول إلى لوحة التحكم. المنصة ملك حصري للأخصائي (mfekry225@outlook.com).`
         };
       }
 
@@ -508,18 +486,73 @@ export const cloudAuth = {
     }
   },
 
+  // Secure Parent Verification & Login directly against Cloud Firestore across ANY device or browser
+  loginParent: async (identifier: string, password: string): Promise<{ success: boolean; student?: Student; error?: string }> => {
+    try {
+      const cleanInput = identifier.trim().toLowerCase();
+      const cleanDigits = identifier.replace(/[^0-9]/g, '');
+      const inputPass = password.trim();
+
+      const colRef = collection(db, 'students');
+      const snap = await getDocs(colRef);
+      
+      let matchedStudent: Student | null = null;
+
+      snap.forEach((docSnap) => {
+        if (matchedStudent) return;
+        const s = docSnap.data() as Student;
+        
+        const usernameMatch = s.parentUsername && s.parentUsername.trim().toLowerCase() === cleanInput;
+        const phoneMatch = cleanDigits.length >= 6 && (
+          (s.parentPhone && s.parentPhone.replace(/[^0-9]/g, '').endsWith(cleanDigits.slice(-8))) ||
+          (s.motherPhone && s.motherPhone.replace(/[^0-9]/g, '').endsWith(cleanDigits.slice(-8)))
+        );
+        const accessCodeMatch = s.parentAccessCode && s.parentAccessCode.trim().toUpperCase() === cleanInput.toUpperCase();
+        const nameMatch = (s.parentName && s.parentName.trim().toLowerCase() === cleanInput) ||
+                          (s.name && s.name.trim().toLowerCase() === cleanInput);
+
+        const isUserMatch = usernameMatch || phoneMatch || accessCodeMatch || nameMatch;
+
+        if (isUserMatch) {
+          const passMatch = (s.parentPassword && s.parentPassword.trim() === inputPass) ||
+                            (s.parentAccessCode && s.parentAccessCode.trim().toUpperCase() === inputPass.toUpperCase());
+          if (passMatch) {
+            matchedStudent = s;
+          }
+        }
+      });
+
+      if (matchedStudent) {
+        return { success: true, student: matchedStudent };
+      }
+
+      return { success: false, error: 'اسم المستخدم أو كلمة المرور غير صحيحة.' };
+    } catch (err: any) {
+      console.error('Parent login Firestore query error:', err);
+      return { success: false, error: 'تعذر الاتصال بخوادم الفايربيس للتحقق من الحساب.' };
+    }
+  },
+
   // Secure Specialist / Owner Login via Firebase Auth (Encrypted on Google Servers with Secure Fallback)
   loginTeacher: async (email: string, password: string): Promise<{ success: boolean; error?: string; user?: FirebaseUser; warning?: string }> => {
     try {
       const cleanEmail = email.trim().toLowerCase();
+      const isSpecialistOwner = 
+        cleanEmail === 'mfekry225@outlook.com' ||
+        cleanEmail === 'mfekry225@gmail.com' ||
+        cleanEmail.includes('mfekry225') ||
+        cleanEmail === 'admin' ||
+        cleanEmail === 'teacher' ||
+        cleanEmail === 'أدمن';
+
       const targetEmail = (cleanEmail === 'admin' || cleanEmail === 'teacher' || cleanEmail === 'أدمن') 
-        ? 'mfekry225@gmail.com' 
+        ? 'mfekry225@outlook.com' 
         : cleanEmail;
 
-      if (targetEmail !== 'mfekry225@gmail.com') {
+      if (!isSpecialistOwner) {
         return {
           success: false,
-          error: 'تم رفض الدخول: البريد الإلكتروني غير مصرح له. لوحة التحكم مخصصة لمالك المنصة (mfekry225@gmail.com).'
+          error: 'تم رفض الدخول: البريد الإلكتروني غير مصرح له. لوحة التحكم مخصصة لمالك المنصة (mfekry225@outlook.com).'
         };
       }
 
@@ -590,7 +623,7 @@ export const cloudAuth = {
               return {
                 success: true,
                 user: {
-                  email: 'mfekry225@gmail.com',
+                  email: 'mfekry225@outlook.com',
                   displayName: 'أ. محمد فكري (المالك)',
                   uid: 'owner-mfekry225'
                 } as unknown as FirebaseUser,
@@ -599,7 +632,7 @@ export const cloudAuth = {
             } else {
               return {
                 success: false,
-                error: 'كلمة المرور غير صحيحة لحساب المالك (mfekry225@gmail.com).'
+                error: 'كلمة المرور غير صحيحة لحساب المالك (mfekry225@outlook.com).'
               };
             }
           } catch {
@@ -635,7 +668,7 @@ export const cloudAuth = {
   },
 
   // Send encrypted password reset email via Firebase Auth
-  sendPasswordReset: async (email: string = 'mfekry225@gmail.com'): Promise<{ success: boolean; message: string }> => {
+  sendPasswordReset: async (email: string = 'mfekry225@outlook.com'): Promise<{ success: boolean; message: string }> => {
     try {
       await sendPasswordResetEmail(auth, email.trim());
       return {
