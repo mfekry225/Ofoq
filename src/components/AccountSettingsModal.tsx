@@ -74,12 +74,12 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
 
   const strength = calculateStrength(newPassword);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (newPassword.length < 4) {
-      setError('كلمة المرور يجب ألا تقل عن 4 خانات');
+    if (newPassword.length < 6) {
+      setError('كلمة المرور يجب ألا تقل عن 6 خانات لتتوافق مع معايير أمان Firebase');
       return;
     }
 
@@ -88,10 +88,19 @@ export const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
       return;
     }
 
+    // Direct Firebase Auth password update
+    if (cloudAuth.getCurrentUser()) {
+      const authRes = await cloudAuth.changeAdminPassword(newPassword);
+      if (!authRes.success) {
+        setError(authRes.error || 'فشل تحديث كلمة المرور في Firebase Auth');
+        return;
+      }
+    }
+
     onSave({
       ...currentCredentials,
       email: email.trim(),
-      password: newPassword,
+      password: '', // Firebase Auth manages password securely
     });
 
     setSavedSuccess(true);

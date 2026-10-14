@@ -103,15 +103,18 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const newLeadsCount = leads.filter((l) => l.status === 'new').length;
 
   const handleCopyCredentials = (std: Student) => {
-    const text = `مرحباً ${std.parentName}،\nبيانات دخولكم لمتابعة تقارير وجلسات الطالب (${std.name}) في منصة أُفق (Ofoq):\n• اسم المستخدم: ${std.parentUsername || std.parentPhone}\n• كلمة المرور: ${std.parentPassword || '123456'}\nرابط الدخول للمنصة:\n${window.location.origin}`;
+    const pass = std.parentPassword || (std.parentAccessCode ? `OFQ-${std.parentAccessCode}` : `OFQ${std.id.slice(-4)}`);
+    const text = `مرحباً ${std.parentName}،\nبيانات دخولكم لمتابعة تقارير وجلسات الطالب (${std.name}) في منصة أُفق (Ofoq):\n• اسم المستخدم: ${std.parentUsername || std.parentPhone}\n• كلمة المرور: ${pass}\nرابط الدخول للمنصة:\n${window.location.origin}`;
     navigator.clipboard.writeText(text);
     setCopiedId(std.id);
     setTimeout(() => setCopiedId(null), 2500);
   };
 
   const handleSendCredentialsWhatsApp = (std: Student) => {
-    const text = `مرحباً ${std.parentName}،\nبيانات دخولكم لمتابعة تقارير وجلسات الطالب (${std.name}) في منصة أُفق (Ofoq):\n• اسم المستخدم: ${std.parentUsername || std.parentPhone}\n• كلمة المرور: ${std.parentPassword || '123456'}\nرابط الدخول للمنصة:\n${window.location.origin}`;
-    const url = getWhatsAppUrl(std.parentPhone, text);
+    const pass = std.parentPassword || (std.parentAccessCode ? `OFQ-${std.parentAccessCode}` : `OFQ${std.id.slice(-4)}`);
+    const text = `مرحباً ${std.parentName}،\nبيانات دخولكم لمتابعة تقارير وجلسات الطالب (${std.name}) في منصة أُفق (Ofoq):\n• اسم المستخدم: ${std.parentUsername || std.parentPhone}\n• كلمة المرور: ${pass}\nرابط الدخول للمنصة:\n${window.location.origin}`;
+    const targetPhone = std.parentPhone || std.motherPhone || '';
+    const url = getWhatsAppUrl(targetPhone, text);
     window.open(url, '_blank');
   };
 
@@ -581,7 +584,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                               <span>السر:</span>
                             </span>
                             <span className="font-mono font-bold text-amber-700 dark:text-amber-300 text-[11px]">
-                              {std.parentPassword || '123456'}
+                              {std.parentPassword || (std.parentAccessCode ? `OFQ-${std.parentAccessCode}` : `OFQ${std.id.slice(-4)}`)}
                             </span>
                           </div>
                         </div>

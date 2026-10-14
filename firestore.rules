@@ -21,12 +21,9 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Verified Specialist Identity (Bootstrap: mfekry225@gmail.com)
+    // Verified Specialist Identity (Strictly Owner: mfekry225@gmail.com)
     function isSpecialist() {
-      return isSignedIn() && (
-        request.auth.token.email == 'mfekry225@gmail.com' ||
-        (request.auth.token.email != null && request.auth.token.email_verified == true)
-      );
+      return isSignedIn() && request.auth.token.email == 'mfekry225@gmail.com';
     }
 
     // ----------------------------------------------------

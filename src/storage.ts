@@ -18,16 +18,14 @@ export const storage = {
       const data = localStorage.getItem(STORAGE_KEYS.TEACHER_CREDS);
       if (data) {
         const parsed = JSON.parse(data);
-        // Automatically migrate legacy default password '123' to 'Mh882018'
-        if (parsed.password === '123') {
-          parsed.password = 'Mh882018';
-          localStorage.setItem(STORAGE_KEYS.TEACHER_CREDS, JSON.stringify(parsed));
-        }
         if (!parsed.googleAccount) {
           parsed.googleAccount = DEFAULT_TEACHER_CREDENTIALS.googleAccount;
-          localStorage.setItem(STORAGE_KEYS.TEACHER_CREDS, JSON.stringify(parsed));
         }
-        return parsed;
+        return {
+          email: parsed.email || 'mfekry225@gmail.com',
+          password: '', // Firebase Auth handles password
+          googleAccount: parsed.googleAccount
+        };
       }
       return DEFAULT_TEACHER_CREDENTIALS;
     } catch {

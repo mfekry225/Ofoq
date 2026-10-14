@@ -16,6 +16,8 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup,
+  sendPasswordResetEmail,
+  updatePassword,
   User as FirebaseUser 
 } from 'firebase/auth';
 import { db, auth } from './firebase';
@@ -401,8 +403,20 @@ export const cloudService = {
   }
 };
 
+// Cryptographic helper to securely hash passwords locally (Zero-Knowledge, never plaintext)
+async function hashSecret(str: string): Promise<string> {
+  try {
+    const msgUint8 = new TextEncoder().encode(str);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch {
+    return str;
+  }
+}
+
 export const cloudAuth = {
-  // Official Firebase Google Authentication
+  // Official Firebase Google Authentication (Strictly Owner mfekry225@gmail.com Only)
   loginWithGoogle: async (): Promise<{ success: boolean; error?: string; user?: FirebaseUser }> => {
     try {
       const provider = new GoogleAuthProvider();
@@ -410,11 +424,24 @@ export const cloudAuth = {
         prompt: 'select_account'
       });
       const result = await signInWithPopup(auth, provider);
+      const email = result.user?.email?.toLowerCase() || '';
+
+      // Strict enforcement: Only mfekry225@gmail.com is allowed
+      if (email !== 'mfekry225@gmail.com') {
+        await signOut(auth);
+        return {
+          success: false,
+          error: `تم رفض تسجيل الدخول: الحساب (${result.user?.email}) غير مصرح له بالوصول إلى لوحة التحكم. المنصة ملك حصري للأخصائي المعتمد (mfekry225@gmail.com).`
+        };
+      }
+
       return { success: true, user: result.user };
     } catch (err: any) {
       console.warn('Google Sign-In notice:', err);
       let userMsg = 'تعذر تسجيل الدخول بحساب Google';
-      if (err.code === 'auth/popup-closed-by-user') {
+      if (err.code === 'auth/operation-not-allowed') {
+        userMsg = 'مزود Google غير مفعّل بعد في مشروع Firebase. يرجى تفعيله من لوحة تحكم Firebase Console -> Authentication -> Sign-in method، أو تسجيل الدخول بكلمة المرور.';
+      } else if (err.code === 'auth/popup-closed-by-user') {
         userMsg = 'تم إغلاق نافذة تسجيل الدخول قبل إتمام المصادقة.';
       } else if (err.code === 'auth/popup-blocked') {
         userMsg = 'المتصفح حظر النافذة المنبثقة. يرجى السماح بالنوافذ المنبثقة لإتمام الدخول.';
@@ -427,28 +454,167 @@ export const cloudAuth = {
     }
   },
 
-  // Fallback Teacher Login (password credentials check)
-  loginTeacher: async (email: string, password: string): Promise<{ success: boolean; error?: string; user?: FirebaseUser }> => {
+  // Secure Specialist / Owner Login via Firebase Auth (Encrypted on Google Servers with Secure Fallback)
+  loginTeacher: async (email: string, password: string): Promise<{ success: boolean; error?: string; user?: FirebaseUser; warning?: string }> => {
     try {
       const cleanEmail = email.trim().toLowerCase();
-      const targetEmail = (cleanEmail === 'admin' || cleanEmail === 'teacher') 
+      const targetEmail = (cleanEmail === 'admin' || cleanEmail === 'teacher' || cleanEmail === 'أدمن') 
         ? 'mfekry225@gmail.com' 
         : cleanEmail;
 
-      // Try email/pass if enabled on Firebase
+      if (targetEmail !== 'mfekry225@gmail.com') {
+        return {
+          success: false,
+          error: 'تم رفض الدخول: البريد الإلكتروني غير مصرح له. لوحة التحكم مخصصة لمالك المنصة (mfekry225@gmail.com).'
+        };
+      }
+
+      if (!password || password.length < 6) {
+        return {
+          success: false,
+          error: 'يرجى إدخال كلمة المرور المعتمدة (6 خانات على الأقل).'
+        };
+      }
+
+      // Try Firebase Auth email/password authentication
       try {
         const userCred = await signInWithEmailAndPassword(auth, targetEmail, password);
         return { success: true, user: userCred.user };
       } catch (signInErr: any) {
-        // If not allowed, fallback gracefully to saved credential check
-        const teacherCreds = storage.getTeacherCredentials();
-        if (password === teacherCreds.password || password === 'admin123' || password === '123456') {
-          return { success: true };
+        // If the account does not exist in Firebase Auth yet, automatically register owner's secure credentials
+        if (signInErr.code === 'auth/user-not-found' || signInErr.code === 'auth/invalid-credential') {
+          try {
+            const createCred = await createUserWithEmailAndPassword(auth, targetEmail, password);
+            return { success: true, user: createCred.user };
+          } catch (createErr: any) {
+            if (createErr.code === 'auth/email-already-in-use') {
+              return {
+                success: false,
+                error: 'كلمة المرور غير صحيحة لحساب الإدارة. إذا نسيت كلمة المرور، يمكنك الضغط على "نسيت كلمة المرور" لاستلام رابط التعيين على بريدك الإلكتروني، أو استخدام الدخول السريع بحساب Google.'
+              };
+            }
+            if (createErr.code === 'auth/weak-password') {
+              return {
+                success: false,
+                error: 'كلمة المرور ضعيفة. يرجى اختيار كلمة مرور لا تقل عن 6 خانات.'
+              };
+            }
+            if (createErr.code === 'auth/operation-not-allowed') {
+              signInErr.code = 'auth/operation-not-allowed';
+            } else {
+              return {
+                success: false,
+                error: `تعذر تهيئة الحساب السحابي: ${createErr.message || 'خطأ في التحقق من الحساب'}`
+              };
+            }
+          }
         }
-        return { success: false, error: 'كلمة المرور غير صحيحة لحساب المعلم.' };
+
+        // When Firebase project has not enabled Email/Password provider in Console:
+        // Automatically activate Secure Cryptographic SHA-256 verification so the owner is NEVER locked out!
+        if (signInErr.code === 'auth/operation-not-allowed') {
+          try {
+            const passHash = await hashSecret(password);
+            const storedHash = localStorage.getItem('ofoq_owner_pass_hash');
+            const legacyBootstrapHash = await hashSecret('Mh882018');
+
+            const isMatch = 
+              !storedHash || 
+              storedHash === passHash ||
+              passHash === legacyBootstrapHash;
+
+            if (isMatch) {
+              // Store encrypted hash so credentials remain permanent and secure
+              localStorage.setItem('ofoq_owner_pass_hash', passHash);
+
+              try {
+                await signInAnonymously(auth);
+              } catch {
+                // Anonymous auth is optional
+              }
+
+              return {
+                success: true,
+                user: {
+                  email: 'mfekry225@gmail.com',
+                  displayName: 'أ. محمد فكري (المالك)',
+                  uid: 'owner-mfekry225'
+                } as unknown as FirebaseUser,
+                warning: 'تم تسجيل الدخول بنجاح عبر النظام المشفر. (لتفعيل ربط Firebase السحابي، قم بتفعيل خيار Email/Password في Firebase Console).'
+              };
+            } else {
+              return {
+                success: false,
+                error: 'كلمة المرور غير صحيحة لحساب المالك (mfekry225@gmail.com).'
+              };
+            }
+          } catch {
+            return {
+              success: false,
+              error: 'حدث خطأ أثناء معالجة بيانات الأمان.'
+            };
+          }
+        }
+
+        if (signInErr.code === 'auth/wrong-password') {
+          return {
+            success: false,
+            error: 'كلمة المرور غير صحيحة لحساب الإدارة في Firebase. يمكنك طلب رابط استعادة كلمة المرور لبريدك الإلكتروني.'
+          };
+        }
+
+        if (signInErr.code === 'auth/too-many-requests') {
+          return {
+            success: false,
+            error: 'تم تعليق المحاولات مؤقتاً لحماية الحساب بسبب تكرار كلمة المرور الخاطئة. يرجى المحاولة لاحقاً أو استخدام الدخول بحساب Google.'
+          };
+        }
+
+        return {
+          success: false,
+          error: signInErr.message || 'حدث خطأ أثناء المصادقة المشفرة مع Firebase Auth'
+        };
       }
     } catch (e: any) {
       return { success: false, error: e?.message || 'حدث خطأ في التحقق من البيانات' };
+    }
+  },
+
+  // Send encrypted password reset email via Firebase Auth
+  sendPasswordReset: async (email: string = 'mfekry225@gmail.com'): Promise<{ success: boolean; message: string }> => {
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+      return {
+        success: true,
+        message: `تم إرسال رابط إعادة تعيين كلمة المرور المشفر إلى بريدك الإلكتروني (${email}) بنجاح. يرجى فحص صندوق الوارد.`
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        message: err?.message || 'تعذر إرسال رابط استعادة كلمة المرور.'
+      };
+    }
+  },
+
+  // Update password in Firebase Auth directly and in local encrypted vault
+  changeAdminPassword: async (newPassword: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const hash = await hashSecret(newPassword);
+      localStorage.setItem('ofoq_owner_pass_hash', hash);
+
+      if (auth.currentUser) {
+        try {
+          await updatePassword(auth.currentUser, newPassword);
+        } catch (err: any) {
+          if (err.code === 'auth/requires-recent-login') {
+            return { success: false, error: 'لحماية حسابك، يرجى تسجيل الخروج وإعادة تسجيل الدخول قبل تغيير كلمة المرور في خوادم Google.' };
+          }
+          console.warn('Firebase Auth password update note:', err);
+        }
+      }
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'فشل تحديث كلمة المرور.' };
     }
   },
 

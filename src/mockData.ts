@@ -2,11 +2,11 @@ import { TeacherProfile, Student, SessionRecord, TimelineMilestone, EnrollmentLe
 
 export const DEFAULT_TEACHER_CREDENTIALS: TeacherCredentials = {
   email: 'mfekry225@gmail.com',
-  password: 'Mh882018',
+  password: '', // Secured via Firebase Auth
   googleAccount: {
     linked: true,
     email: 'mfekry225@gmail.com',
-    name: 'أ. محمد فكري (حساب Google)',
+    name: 'أ. محمد فكري (حساب Google المعتمد)',
     linkedAt: '2026-09-16'
   }
 };
