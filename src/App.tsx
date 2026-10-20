@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   TeacherProfile, Student, SessionRecord, TimelineMilestone, 
-  EnrollmentLead, CurrentUser, TeacherCredentials, CompletedAssessmentRecord 
+  EnrollmentLead, CurrentUser, CompletedAssessmentRecord 
 } from './types';
 import { storage } from './storage';
 import { INITIAL_TEACHER_PROFILE } from './mockData';
@@ -11,30 +11,30 @@ import { TeacherProfileView } from './components/TeacherProfileView';
 import { EnrollmentFormView } from './components/EnrollmentFormView';
 import { TeacherDashboard } from './components/TeacherDashboard';
 import { ParentPortal } from './components/ParentPortal';
-import { AssessmentScreeningView } from './components/AssessmentScreeningView';
 import { SessionModal } from './components/SessionModal';
 import { StudentModal } from './components/StudentModal';
 import { ShareReportModal } from './components/ShareReportModal';
 import { ThemeProvider } from './themeContext';
-import { ThemeToggle } from './components/ThemeToggle';
 
 function MainAppContent() {
   // Navigation & View Mode
-  const [currentView, setCurrentView] = useState<'login' | 'profile' | 'enroll' | 'dashboard' | 'assessments'>('login');
+  const [currentView, setCurrentView] = useState<'login' | 'profile' | 'enroll' | 'dashboard'>('login');
 
   // Cloud Sync Status
   const [cloudSyncStatus, setCloudSyncStatus] = useState<CloudSyncStatus>('connecting');
-  const [cloudStatusMessage, setCloudStatusMessage] = useState<string>('جاري الاتصال بالسحابة...');
+  const [cloudStatusMessage, setCloudStatusMessage] = useState<string>('جاري الاتصال...');
 
-  // App Data State with LocalStorage Persistence & Firestore Sync
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() => storage.getCurrentUser());
+  // الجلسة تُحدَّد من Firebase Auth فقط (لا تُخزَّن في المتصفح)
+  const [authReady, setAuthReady] = useState(false);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+
+  // الملف العام للأخصائي (بيانات علنية) — البيانات الحساسة تبقى في الذاكرة فقط
   const [teacherProfile, setTeacherProfile] = useState<TeacherProfile>(() => storage.getTeacherProfile());
-  const [teacherCredentials, setTeacherCredentials] = useState<TeacherCredentials>(() => storage.getTeacherCredentials());
-  const [students, setStudents] = useState<Student[]>(() => storage.getStudents());
-  const [sessions, setSessions] = useState<SessionRecord[]>(() => storage.getSessions());
-  const [timelines, setTimelines] = useState<TimelineMilestone[]>(() => storage.getTimelines());
-  const [leads, setLeads] = useState<EnrollmentLead[]>(() => storage.getLeads());
-  const [assessments, setAssessments] = useState<CompletedAssessmentRecord[]>(() => storage.getAssessments());
+  const [students, setStudents] = useState<Student[]>([]);
+  const [sessions, setSessions] = useState<SessionRecord[]>([]);
+  const [timelines, setTimelines] = useState<TimelineMilestone[]>([]);
+  const [leads, setLeads] = useState<EnrollmentLead[]>([]);
+  const [assessments, setAssessments] = useState<CompletedAssessmentRecord[]>([]);
 
   // Modal States
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
@@ -43,125 +43,132 @@ function MainAppContent() {
   const [studentToEdit, setStudentToEdit] = useState<Student | null>(null);
   const [shareSessionData, setShareSessionData] = useState<{ session: SessionRecord; student: Student } | null>(null);
 
-  // 1. Initialize Real-Time Cloud Firestore Sync
+  // 0. مسح أي بيانات حساسة خزّنتها النسخ القديمة محلياً على هذا الجهاز
   useEffect(() => {
-    const unsubscribe = cloudService.subscribeToCloud({
-      onStudentsUpdate: (remoteStudents) => {
-        if (Array.isArray(remoteStudents)) {
-          setStudents(remoteStudents);
-        }
-      },
-      onSessionsUpdate: (remoteSessions) => {
-        if (Array.isArray(remoteSessions)) {
-          setSessions(remoteSessions);
-        }
-      },
-      onTimelinesUpdate: (remoteTimelines) => {
-        if (Array.isArray(remoteTimelines)) {
-          setTimelines(remoteTimelines);
-        }
-      },
-      onLeadsUpdate: (remoteLeads) => {
-        if (Array.isArray(remoteLeads)) {
-          setLeads(remoteLeads);
-        }
-      },
-      onAssessmentsUpdate: (remoteAssessments) => {
-        if (Array.isArray(remoteAssessments)) {
-          setAssessments(remoteAssessments);
-        }
-      },
-      onSettingsUpdate: (creds, profile) => {
-        if (creds) setTeacherCredentials(creds);
-        if (profile) {
-          const isLegacy = profile.title?.includes('برمجيات') || profile.bio?.includes('برمج') || !profile.title?.includes('نطق');
-          if (!isLegacy) {
-            setTeacherProfile({
-              ...INITIAL_TEACHER_PROFILE,
-              ...profile,
-              specialistDuties: profile.specialistDuties?.length ? profile.specialistDuties : INITIAL_TEACHER_PROFILE.specialistDuties,
-              familySupport: profile.familySupport?.length ? profile.familySupport : INITIAL_TEACHER_PROFILE.familySupport,
-            });
-          }
-        }
-      },
-      onStatusChange: (status, msg) => {
-        setCloudSyncStatus(status);
-        if (msg) setCloudStatusMessage(msg);
-      }
-    });
-
-    return () => unsubscribe();
+    storage.purgeLegacy();
   }, []);
 
-  // 1.5. Listen for Firebase Auth user state (e.g. Google login persistence)
+  // 1. الملف العام للأخصائي (متاح للزوار)
   useEffect(() => {
-    const unsubAuth = cloudAuth.onAuthChange((fbUser) => {
-      if (fbUser) {
-        const email = fbUser.email?.toLowerCase();
-        if (email === 'mfekry225@outlook.com' || email === 'mfekry225@gmail.com' || email?.includes('mfekry225')) {
-          setCurrentUser((prev) => {
-            if (prev?.role === 'teacher') return prev;
-            return {
-              role: 'teacher',
-              name: fbUser.displayName || teacherProfile.name,
-              email: fbUser.email || undefined,
-            };
-          });
-        }
-      }
+    return cloudService.subscribePublicProfile((profile) => {
+      const isLegacy = profile.title?.includes('برمجيات') || profile.bio?.includes('برمج') || !profile.title?.includes('نطق');
+      if (isLegacy) return;
+      const merged: TeacherProfile = {
+        ...INITIAL_TEACHER_PROFILE,
+        ...profile,
+        specialistDuties: profile.specialistDuties?.length ? profile.specialistDuties : INITIAL_TEACHER_PROFILE.specialistDuties,
+        familySupport: profile.familySupport?.length ? profile.familySupport : INITIAL_TEACHER_PROFILE.familySupport,
+      };
+      setTeacherProfile(merged);
+      storage.saveTeacherProfile(merged);
     });
-    return () => unsubAuth();
-  }, [teacherProfile.name]);
+  }, []);
 
-  // 2. Sync with local storage for instant offline fallback
+  // 2. حالة الدخول: الدور (أخصائي / ولي أمر) يحدده الخادم عبر مستندات admins و parents
   useEffect(() => {
-    storage.saveCurrentUser(currentUser);
-    if (currentUser) {
+    let cancelled = false;
+    const unsubscribe = cloudAuth.onAuthChange(async (fbUser) => {
+      if (!fbUser) {
+        if (cancelled) return;
+        setCurrentUser(null);
+        setCurrentView((v) => (v === 'dashboard' ? 'login' : v));
+        setAuthReady(true);
+        return;
+      }
+      const resolved = await cloudAuth.resolveRole(fbUser);
+      if (cancelled) return;
+      if (!resolved) {
+        // حساب Firebase غير مرتبط بأخصائي أو ولي أمر: لا نمنحه أي وصول
+        await cloudAuth.logout();
+        setCurrentUser(null);
+        setAuthReady(true);
+        return;
+      }
+      if (resolved.role === 'teacher') {
+        setCurrentUser({
+          role: 'teacher',
+          name: fbUser.displayName || storage.getTeacherProfile().name,
+          email: fbUser.email || undefined,
+        });
+      } else {
+        setCurrentUser({
+          role: 'parent',
+          studentId: resolved.studentId,
+          name: resolved.username || 'ولي الأمر',
+        });
+      }
       setCurrentView('dashboard');
+      setAuthReady(true);
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
+
+  // 3. اشتراك البيانات حسب الدور: الأخصائي يرى كل شيء، وولي الأمر يرى طفله فقط
+  useEffect(() => {
+    setStudents([]);
+    setSessions([]);
+    setTimelines([]);
+    setLeads([]);
+    setAssessments([]);
+
+    if (!currentUser) {
+      setCloudSyncStatus('connecting');
+      return;
     }
-  }, [currentUser]);
 
-  useEffect(() => {
-    storage.saveTeacherCredentials(teacherCredentials);
-  }, [teacherCredentials]);
+    const onStatusChange = (status: CloudSyncStatus, msg?: string) => {
+      setCloudSyncStatus(status);
+      if (msg) setCloudStatusMessage(msg);
+    };
 
-  useEffect(() => {
-    storage.saveStudents(students);
-  }, [students]);
+    if (currentUser.role === 'teacher') {
+      return cloudService.subscribeOwner({
+        onStudents: setStudents,
+        onSessions: setSessions,
+        onTimelines: setTimelines,
+        onLeads: setLeads,
+        onAssessments: setAssessments,
+        onStatusChange,
+      });
+    }
 
-  useEffect(() => {
-    storage.saveSessions(sessions);
-  }, [sessions]);
-
-  useEffect(() => {
-    storage.saveTimelines(timelines);
-  }, [timelines]);
-
-  useEffect(() => {
-    storage.saveLeads(leads);
-  }, [leads]);
-
-  useEffect(() => {
-    storage.saveAssessments(assessments);
-  }, [assessments]);
+    if (currentUser.studentId) {
+      return cloudService.subscribeParent(currentUser.studentId, {
+        onStudent: (student) => setStudents(student ? [student] : []),
+        onSessions: setSessions,
+        onTimelines: setTimelines,
+        onAssessments: setAssessments,
+        onStatusChange,
+      });
+    }
+  }, [currentUser?.role, currentUser?.studentId]);
 
   // Assessment Handlers
   const handleSaveAssessment = (record: CompletedAssessmentRecord) => {
-    const updated = [record, ...assessments.filter((a) => a.id !== record.id)];
-    setAssessments(updated);
+    // ولي الأمر: يحفظ التقييم لطفله فقط (والقواعد تفرض ذلك)، دون تعديل ملف الطالب
+    if (currentUser?.role === 'parent') {
+      if (!currentUser.studentId) return;
+      const parentRecord: CompletedAssessmentRecord = { ...record, studentId: currentUser.studentId };
+      cloudService.saveAssessment(parentRecord).catch(() => {});
+      return;
+    }
+
     cloudService.saveAssessment(record).catch(() => {});
 
     // Match with student
     const target = students.find((s) => s.id === record.studentId || (record.childName && s.name.trim().toLowerCase() === record.childName.trim().toLowerCase()));
     if (target) {
+      const linkedRecord: CompletedAssessmentRecord = { ...record, studentId: target.id, studentName: target.name };
+      cloudService.saveAssessment(linkedRecord).catch(() => {});
       const updatedStudent: Student = {
         ...target,
-        assessments: [record, ...(target.assessments || []).filter((a) => a.id !== record.id)],
+        assessments: [linkedRecord, ...(target.assessments || []).filter((a) => a.id !== record.id)],
         hasNewAssessment: true,
         lastAssessmentDate: record.date
       };
-      setStudents(students.map((s) => (s.id === updatedStudent.id ? updatedStudent : s)));
       cloudService.saveStudent(updatedStudent).catch(() => {});
 
       // Add timeline milestone
@@ -174,24 +181,8 @@ function MainAppContent() {
         levelBadge: 'تقييم مقنن 📋',
         type: 'achievement'
       };
-      setTimelines([milestone, ...timelines]);
       cloudService.saveTimeline(milestone).catch(() => {});
     }
-  };
-
-  // Auth Handlers
-  const handleLoginSuccess = (user: CurrentUser) => {
-    if (user.student) {
-      setStudents((prev) => {
-        const exists = prev.some((s) => s.id === user.student!.id);
-        if (exists) {
-          return prev.map((s) => s.id === user.student!.id ? user.student! : s);
-        }
-        return [user.student!, ...prev];
-      });
-    }
-    setCurrentUser(user);
-    setCurrentView('dashboard');
   };
 
   const handleLogout = () => {
@@ -200,16 +191,10 @@ function MainAppContent() {
     setCurrentView('login');
   };
 
-  // Student Handlers
+  // Student Handlers (الأخصائي فقط؛ القواعد ترفض أي كتابة من غيره)
   const handleSaveStudent = async (savedStudent: Student) => {
-    const existingIndex = students.findIndex((s) => s.id === savedStudent.id);
-    if (existingIndex >= 0) {
-      const updated = [...students];
-      updated[existingIndex] = savedStudent;
-      setStudents(updated);
-    } else {
-      setStudents([savedStudent, ...students]);
-      
+    const isNew = !students.some((s) => s.id === savedStudent.id);
+    if (isNew) {
       // Auto-create initial milestone
       const newMilestone: TimelineMilestone = {
         id: `tm-${Date.now()}`,
@@ -220,18 +205,17 @@ function MainAppContent() {
         levelBadge: 'بداية الانطلاق 🚀',
         type: 'achievement'
       };
-      setTimelines([newMilestone, ...timelines]);
       cloudService.saveTimeline(newMilestone).catch(() => {});
     }
-    // Save to Cloud Firestore with explicit awaiting
     await cloudService.saveStudent(savedStudent);
 
     setIsStudentModalOpen(false);
     setStudentToEdit(null);
   };
 
-  const handleDeleteStudent = (studentId: string) => {
-    setStudents(students.filter((s) => s.id !== studentId));
+  const handleDeleteStudent = async (studentId: string) => {
+    const target = students.find((s) => s.id === studentId);
+    if (target?.parentUid) await cloudAuth.revokeParentAccess(target);
     cloudService.deleteStudent(studentId);
   };
 
@@ -243,7 +227,6 @@ function MainAppContent() {
       createdAt: new Date().toISOString(),
     };
 
-    setSessions([newSession, ...sessions]);
     cloudService.saveSession(newSession);
 
     // Update student's completed sessions count
@@ -260,7 +243,6 @@ function MainAppContent() {
         levelScore: Math.min(100, targetStudent.levelScore + 2),
       };
 
-      setStudents(students.map((s) => (s.id === updatedStudent.id ? updatedStudent : s)));
       cloudService.saveStudent(updatedStudent);
 
       // If milestone worthy
@@ -274,7 +256,6 @@ function MainAppContent() {
           levelBadge: 'إتقان فائق ⭐',
           type: 'milestone'
         };
-        setTimelines([milestone, ...timelines]);
         cloudService.saveTimeline(milestone);
       }
 
@@ -293,13 +274,12 @@ function MainAppContent() {
       status: 'new',
       createdAt: new Date().toISOString(),
     };
-    setLeads([newLead, ...leads]);
+    // الزائر يستطيع الإرسال فقط؛ الأخصائي هو من يقرأ الطلبات
     cloudService.saveLead(newLead);
   };
 
   const handleAcceptLead = (lead: EnrollmentLead) => {
-    const randomCode = Math.floor(100 + Math.random() * 900);
-    // Convert Lead directly to a Student
+    // تحويل الطلب إلى طالب. حساب ولي الأمر يُنشأ لاحقاً من ملف الطالب بيد الأخصائي.
     const newStudent: Student = {
       id: `std-${Date.now()}`,
       name: lead.studentName,
@@ -308,9 +288,6 @@ function MainAppContent() {
       parentName: lead.parentName,
       parentPhone: lead.phone,
       motherPhone: lead.motherPhone,
-      parentUsername: `${lead.parentName.split(' ')[0]}_${randomCode}`.toLowerCase(),
-      parentPassword: Math.floor(100000 + Math.random() * 900000).toString(),
-      parentAccessCode: `OFQ-${randomCode}`,
       currentLevel: 'المستوى الأول (تأسيسي)',
       levelScore: 75,
       totalSessions: 12,
@@ -321,18 +298,17 @@ function MainAppContent() {
       notes: lead.notes,
     };
 
-    setStudents([newStudent, ...students]);
     cloudService.saveStudent(newStudent);
-
-    const updatedLead: EnrollmentLead = { ...lead, status: 'converted' };
-    setLeads(leads.map((l) => (l.id === lead.id ? updatedLead : l)));
-    cloudService.saveLead(updatedLead);
+    cloudService.saveLead({ ...lead, status: 'converted' });
   };
 
-  const handleUpdateCredentials = (newCreds: TeacherCredentials) => {
-    setTeacherCredentials(newCreds);
-    cloudService.saveTeacherSettings(newCreds, teacherProfile);
-  };
+  if (!authReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f0f7fc] dark:bg-[#080d1a] text-slate-500 dark:text-slate-300 text-sm font-bold">
+        جاري التحميل...
+      </div>
+    );
+  }
 
   // RENDER CURRENT VIEW
   return (
@@ -341,8 +317,6 @@ function MainAppContent() {
       {currentView === 'login' && (
         <LoginGateway
           teacherProfile={teacherProfile}
-          students={students}
-          onLoginSuccess={handleLoginSuccess}
           onNavigateToProfile={() => setCurrentView('profile')}
         />
       )}
@@ -377,11 +351,8 @@ function MainAppContent() {
               leads={leads}
               timelines={timelines}
               assessments={assessments}
-              teacherCredentials={teacherCredentials}
               cloudSyncStatus={cloudSyncStatus}
               cloudStatusMessage={cloudStatusMessage}
-              onForceSync={() => cloudService.backupAllToCloud()}
-              onUpdateCredentials={handleUpdateCredentials}
               onOpenNewSession={(studentId) => {
                 setSessionModalStudentId(studentId);
                 setIsSessionModalOpen(true);
@@ -404,7 +375,7 @@ function MainAppContent() {
             />
           ) : (
             (() => {
-              const currentStudent = students.find((s) => s.id === currentUser.studentId) || currentUser.student;
+              const currentStudent = students.find((s) => s.id === currentUser.studentId);
               if (!currentStudent) {
                 return (
                   <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center space-y-3">

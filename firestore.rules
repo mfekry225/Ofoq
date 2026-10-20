@@ -1,183 +1,157 @@
 rules_version = '2';
+
+// قواعد أمان منصة أُفق
+// - الأخصائي: له مستند في admins/{uid} (يُنشأ يدوياً من Firebase Console). يقرأ ويكتب كل شيء.
+// - ولي الأمر: له مستند في parents/{uid} يحدد الطالب المرتبط به. يقرأ ملف طفله فقط ولا يكتب شيئاً
+//   سوى نتائج التقييمات الخاصة بطفله.
+// - الزائر (بدون دخول): يقرأ الملف العام للأخصائي ويرسل طلب تسجيل فقط، ولا يقرأ أي شيء آخر.
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ----------------------------------------------------
-    // GLOBAL SECURITY PRIMITIVES & HELPERS
-    // ----------------------------------------------------
-    function isValidId(id) {
-      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
-    function incoming() {
-      return request.resource.data;
-    }
-
-    function existing() {
-      return resource.data;
-    }
-
-    function isSignedIn() {
+    // ---------- دوال مساعدة ----------
+    function signedIn() {
       return request.auth != null;
     }
 
-    // Verified Specialist Identity (Owner: mfekry225@outlook.com or mfekry225@gmail.com)
-    function isSpecialist() {
-      return isSignedIn() && (
-        request.auth.token.email == 'mfekry225@outlook.com' ||
-        request.auth.token.email == 'mfekry225@gmail.com' ||
-        (request.auth.token.email != null && request.auth.token.email.matches('.*mfekry225.*')) ||
-        request.auth.uid == 'owner-mfekry225'
-      );
+    function isOwner() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
-    // ----------------------------------------------------
-    // SCHEMA VALIDATION HELPERS
-    // ----------------------------------------------------
-    function isValidStudent(data) {
-      return data.id is string && data.id.size() <= 128 &&
-             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
-             data.parentName is string && data.parentName.size() > 0 && data.parentName.size() <= 100 &&
-             data.parentPhone is string && data.parentPhone.size() > 0 && data.parentPhone.size() <= 30 &&
-             (!('parentUsername' in data) || (data.parentUsername is string && data.parentUsername.size() <= 100)) &&
-             (!('parentPassword' in data) || (data.parentPassword is string && data.parentPassword.size() <= 100)) &&
-             (!('parentAccessCode' in data) || (data.parentAccessCode is string && data.parentAccessCode.size() <= 100)) &&
-             (!('birthDate' in data) || (data.birthDate is string && data.birthDate.size() <= 50)) &&
-             (!('address' in data) || (data.address is string && data.address.size() <= 300)) &&
-             (!('diagnosis' in data) || (data.diagnosis is string && data.diagnosis.size() <= 300)) &&
-             (!('grade' in data) || (data.grade is string && data.grade.size() <= 100)) &&
-             (!('subject' in data) || (data.subject is string && data.subject.size() <= 150)) &&
-             (!('motherPhone' in data) || (data.motherPhone is string && data.motherPhone.size() <= 30)) &&
-             (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000)) &&
-             (!('currentLevel' in data) || (data.currentLevel is string && data.currentLevel.size() <= 100)) &&
-             (!('status' in data) || (data.status is string && data.status.size() <= 30)) &&
-             (!('joinedAt' in data) || (data.joinedAt is string && data.joinedAt.size() <= 50)) &&
-             (!('nextSessionDate' in data) || (data.nextSessionDate is string && data.nextSessionDate.size() <= 50)) &&
-             (!('nextSessionTime' in data) || (data.nextSessionTime is string && data.nextSessionTime.size() <= 50)) &&
-             (!('levelScore' in data) || (data.levelScore is number)) &&
-             (!('totalSessions' in data) || (data.totalSessions is number)) &&
-             (!('completedSessions' in data) || (data.completedSessions is number)) &&
-             (!('remainingSessions' in data) || (data.remainingSessions is number)) &&
-             (!('assessments' in data) || (data.assessments is list)) &&
-             (!('hasNewAssessment' in data) || (data.hasNewAssessment is bool)) &&
-             (!('lastAssessmentDate' in data) || (data.lastAssessmentDate is string)) &&
-             (!('specialistEmail' in data) || (data.specialistEmail is string && data.specialistEmail.size() <= 100));
+    function isParentOf(studentId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/parents/$(request.auth.uid))
+        && get(/databases/$(database)/documents/parents/$(request.auth.uid)).data.studentId == studentId;
     }
 
-    function isValidSession(data) {
-      return data.id is string && data.id.size() <= 128 &&
-             data.studentId is string && data.studentId.size() <= 128 &&
-             data.studentName is string && data.studentName.size() <= 100 &&
-             data.date is string && data.date.size() <= 30 &&
-             (!('time' in data) || (data.time is string && data.time.size() <= 30)) &&
-             (!('status' in data) || (data.status is string && data.status.size() <= 30)) &&
-             (!('sessionNumber' in data) || (data.sessionNumber is number)) &&
-             (!('durationMinutes' in data) || (data.durationMinutes is number)) &&
-             (!('understandingScore' in data) || (data.understandingScore is number)) &&
-             (!('studentEngagementScore' in data) || (data.studentEngagementScore is number)) &&
-             (!('topic' in data) || (data.topic is string && data.topic.size() <= 300)) &&
-             (!('preSessionNotes' in data) || (data.preSessionNotes is string && data.preSessionNotes.size() <= 1000)) &&
-             (!('previousHomeworkStatus' in data) || (data.previousHomeworkStatus is string && data.previousHomeworkStatus.size() <= 50)) &&
-             (!('studentStrengths' in data) || (data.studentStrengths is string && data.studentStrengths.size() <= 1000)) &&
-             (!('areasToImprove' in data) || (data.areasToImprove is string && data.areasToImprove.size() <= 1000)) &&
-             (!('nextPlan' in data) || (data.nextPlan is string && data.nextPlan.size() <= 1000)) &&
-             (!('homeworkAssigned' in data) || (data.homeworkAssigned is string && data.homeworkAssigned.size() <= 1000)) &&
-             (!('teacherNoteToParent' in data) || (data.teacherNoteToParent is string && data.teacherNoteToParent.size() <= 1500)) &&
-             (!('activities' in data) || (data.activities is list)) &&
-             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50));
+    function validId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
-    function isValidTimeline(data) {
-      return data.id is string && data.id.size() <= 128 &&
-             data.studentId is string && data.studentId.size() <= 128 &&
-             data.title is string && data.title.size() <= 250 &&
-             data.date is string && data.date.size() <= 30 &&
-             (!('description' in data) || (data.description is string && data.description.size() <= 1000)) &&
-             (!('levelBadge' in data) || (data.levelBadge is string && data.levelBadge.size() <= 50)) &&
-             (!('type' in data) || (data.type is string && data.type.size() <= 50));
+    function optStr(data, field, max) {
+      return !(field in data) || (data[field] is string && data[field].size() <= max);
     }
 
-    function isValidLead(data) {
-      return data.parentName is string && data.parentName.size() >= 2 && data.parentName.size() <= 100 &&
-             data.phone is string && data.phone.size() >= 6 && data.phone.size() <= 30 &&
-             (!('motherPhone' in data) || (data.motherPhone is string && data.motherPhone.size() <= 30)) &&
-             (!('studentName' in data) || (data.studentName is string && data.studentName.size() <= 100)) &&
-             (!('studentAge' in data) || (data.studentAge is string && data.studentAge.size() <= 50)) &&
-             (!('subjectNeeded' in data) || (data.subjectNeeded is string && data.subjectNeeded.size() <= 150)) &&
-             (!('preferredTime' in data) || (data.preferredTime is string && data.preferredTime.size() <= 100)) &&
-             (!('status' in data) || (data.status is string && data.status.size() <= 30)) &&
-             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50)) &&
-             (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000));
+    // ---------- التحقق من البيانات ----------
+    function validStudent(d) {
+      return d.id is string && d.id.size() <= 128
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 100
+        && d.parentName is string && d.parentName.size() <= 100
+        && d.parentPhone is string && d.parentPhone.size() <= 30
+        && !('parentPassword' in d)
+        && !('parentAccessCode' in d)
+        && optStr(d, 'parentUid', 128)
+        && optStr(d, 'parentUsername', 50)
+        && optStr(d, 'notes', 2000)
+        && optStr(d, 'diagnosis', 300);
     }
 
-    function isValidTeacherProfile(data) {
-      return (!('name' in data) || (data.name is string && data.name.size() <= 100)) &&
-             (!('email' in data) || (data.email is string && data.email.size() <= 100)) &&
-             (!('phone' in data) || (data.phone is string && data.phone.size() <= 50)) &&
-             (!('whatsapp' in data) || (data.whatsapp is string && data.whatsapp.size() <= 50));
+    function validSession(d) {
+      return d.id is string && d.id.size() <= 128
+        && d.studentId is string && d.studentId.size() <= 128
+        && d.date is string && d.date.size() <= 30;
     }
 
-    // ----------------------------------------------------
-    // 1. HEALTH CHECK & CONNECTION TEST
-    // ----------------------------------------------------
-    match /test/{testId} {
-      allow get, write: if true;
+    function validTimeline(d) {
+      return d.id is string && d.id.size() <= 128
+        && d.studentId is string && d.studentId.size() <= 128
+        && d.title is string && d.title.size() <= 250
+        && d.date is string && d.date.size() <= 30;
     }
 
-    // ----------------------------------------------------
-    // 2. APP SETTINGS (PUBLIC PROFILE & TEACHER DATA)
-    // ----------------------------------------------------
+    function validAssessment(d) {
+      return d.id is string && d.id.size() <= 128
+        && d.scaleId is string && d.scaleId.size() <= 50
+        && d.date is string && d.date.size() <= 30
+        && d.totalScore is number
+        && optStr(d, 'studentId', 128)
+        && optStr(d, 'notes', 2000);
+    }
+
+    // طلب التسجيل متاح للزوار، لذلك نقيّد الحقول والأحجام بصرامة
+    function validLead(d) {
+      return d.keys().hasOnly([
+          'id', 'parentName', 'studentName', 'studentAge', 'subjectNeeded',
+          'phone', 'motherPhone', 'preferredTime', 'notes', 'status', 'createdAt'
+        ])
+        && d.parentName is string && d.parentName.size() >= 2 && d.parentName.size() <= 100
+        && d.phone is string && d.phone.size() >= 6 && d.phone.size() <= 30
+        && d.status == 'new'
+        && optStr(d, 'id', 128)
+        && optStr(d, 'studentName', 100)
+        && optStr(d, 'studentAge', 50)
+        && optStr(d, 'subjectNeeded', 150)
+        && optStr(d, 'motherPhone', 30)
+        && optStr(d, 'preferredTime', 100)
+        && optStr(d, 'notes', 1000)
+        && optStr(d, 'createdAt', 50);
+    }
+
+    function validParent(d) {
+      return d.keys().hasOnly(['studentId', 'username', 'createdAt'])
+        && d.studentId is string && d.studentId.size() <= 128
+        && d.username is string && d.username.size() <= 50;
+    }
+
+    // ---------- المجموعات ----------
+
+    // حسابات الأخصائي: القراءة لصاحب الحساب فقط، والكتابة من Console فقط
+    match /admins/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow list, write: if false;
+    }
+
+    // ربط ولي الأمر بالطالب: يقرأه صاحبه، ويديره الأخصائي فقط
+    match /parents/{uid} {
+      allow get: if signedIn() && (request.auth.uid == uid || isOwner());
+      allow list: if isOwner();
+      allow create, update: if isOwner() && validParent(request.resource.data);
+      allow delete: if isOwner();
+    }
+
+    // الملف العام للأخصائي: مقروء للجميع، والكتابة للأخصائي فقط
     match /app_settings/{settingId} {
-      allow get, list: if true;
-      allow write: if isSpecialist() || isValidTeacherProfile(incoming()) || true;
+      allow get: if settingId == 'profile' || isOwner();
+      allow list: if isOwner();
+      allow write: if isOwner();
     }
 
-    // ----------------------------------------------------
-    // 3. LEADS (CONSULTATION & EVALUATION BOOKING REQUESTS)
-    // ----------------------------------------------------
-    match /leads/{leadId} {
-      allow create: if isValidId(leadId) && isValidLead(incoming());
-      allow read, list, update, delete: if true;
-    }
-
-    // ----------------------------------------------------
-    // 4. STUDENTS (REAL-TIME SYNC FOR PARENTS & SPECIALIST)
-    // ----------------------------------------------------
     match /students/{studentId} {
-      // Allows parents on any phone/browser to sync their child's records
-      allow read, list: if true;
-      allow create, update: if isValidId(studentId) && isValidStudent(incoming());
-      allow delete: if isValidId(studentId);
+      allow get: if isOwner() || isParentOf(studentId);
+      allow list: if isOwner();
+      allow create, update: if isOwner() && validId(studentId) && validStudent(request.resource.data);
+      allow delete: if isOwner();
     }
 
-    // ----------------------------------------------------
-    // 5. SESSIONS (REAL-TIME SYNC FOR PARENTS & SPECIALIST)
-    // ----------------------------------------------------
     match /sessions/{sessionId} {
-      allow read, list: if true;
-      allow create, update: if isValidId(sessionId) && isValidSession(incoming());
-      allow delete: if isValidId(sessionId);
+      allow get, list: if isOwner() || isParentOf(resource.data.studentId);
+      allow create, update: if isOwner() && validId(sessionId) && validSession(request.resource.data);
+      allow delete: if isOwner();
     }
 
-    // ----------------------------------------------------
-    // 6. TIMELINES (STUDENT MILESTONES & BADGES)
-    // ----------------------------------------------------
     match /timelines/{timelineId} {
-      allow read, list: if true;
-      allow create, update: if isValidId(timelineId) && isValidTimeline(incoming());
-      allow delete: if isValidId(timelineId);
+      allow get, list: if isOwner() || isParentOf(resource.data.studentId);
+      allow create, update: if isOwner() && validId(timelineId) && validTimeline(request.resource.data);
+      allow delete: if isOwner();
     }
 
-    // ----------------------------------------------------
-    // 7. ASSESSMENTS (SCREENING & CLINICAL SCALES)
-    // ----------------------------------------------------
+    // التقييمات: ولي الأمر يضيف تقييماً لطفله فقط (إنشاء فقط، بلا تعديل أو حذف)
     match /assessments/{assessmentId} {
-      allow read, list, create, update, delete: if isValidId(assessmentId);
+      allow get, list: if isOwner() || isParentOf(resource.data.studentId);
+      allow create: if validId(assessmentId)
+        && validAssessment(request.resource.data)
+        && (isOwner()
+            || ('studentId' in request.resource.data && isParentOf(request.resource.data.studentId)));
+      allow update, delete: if isOwner();
     }
 
-    // ----------------------------------------------------
-    // GLOBAL CATCH-ALL
-    // ----------------------------------------------------
+    // طلبات التسجيل: الزائر يرسل فقط، والأخصائي وحده يقرأ ويدير
+    match /leads/{leadId} {
+      allow create: if validId(leadId) && validLead(request.resource.data);
+      allow get, list, update, delete: if isOwner();
+    }
+
+    // أي مسار آخر مرفوض
     match /{document=**} {
       allow read, write: if false;
     }

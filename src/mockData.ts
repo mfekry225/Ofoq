@@ -1,15 +1,4 @@
-import { TeacherProfile, Student, SessionRecord, TimelineMilestone, EnrollmentLead, AbsenceExcuseRequest, TeacherCredentials } from './types';
-
-export const DEFAULT_TEACHER_CREDENTIALS: TeacherCredentials = {
-  email: 'mfekry225@outlook.com',
-  password: '', // Secured via Firebase Auth
-  googleAccount: {
-    linked: true,
-    email: 'mfekry225@outlook.com',
-    name: 'أ. محمد فكري',
-    linkedAt: '2026-09-16'
-  }
-};
+import { TeacherProfile } from './types';
 
 export const INITIAL_TEACHER_PROFILE: TeacherProfile = {
   name: 'أ. محمد فكري',
@@ -135,9 +124,3 @@ export const INITIAL_TEACHER_PROFILE: TeacherProfile = {
 };
 
 // Clean slate: completely empty initial lists so the teacher builds real student profiles from scratch
-export const INITIAL_STUDENTS: Student[] = [];
-export const INITIAL_SESSIONS: SessionRecord[] = [];
-export const INITIAL_TIMELINES: TimelineMilestone[] = [];
-export const INITIAL_LEADS: EnrollmentLead[] = [];
-export const INITIAL_EXCUSES: AbsenceExcuseRequest[] = [];
-

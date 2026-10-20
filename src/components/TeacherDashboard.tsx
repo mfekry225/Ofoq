@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Student, SessionRecord, EnrollmentLead, TeacherProfile, TeacherCredentials, TimelineMilestone, CompletedAssessmentRecord } from '../types';
+import { Student, SessionRecord, EnrollmentLead, TeacherProfile, TimelineMilestone, CompletedAssessmentRecord } from '../types';
 import { 
   Users, Calendar, Plus, Share2, BookOpen, Clock, Award, TrendingUp, 
   MessageCircle, Phone, Search, Filter, CheckCircle2, XCircle, Bell, 
@@ -9,9 +9,10 @@ import {
 } from 'lucide-react';
 import { getWhatsAppUrl, formatDateArabic } from '../utils';
 import { AccountSettingsModal } from './AccountSettingsModal';
+import { ParentAccountModal } from './ParentAccountModal';
 import { StudentProfileModal } from './StudentProfileModal';
 import { calculateAgeArabic } from '../studentOptions';
-import { CloudSyncStatus, cloudAuth, cloudService } from '../cloudFirestore';
+import { CloudSyncStatus } from '../cloudFirestore';
 import { ThemeToggle } from './ThemeToggle';
 import { AssessmentScreeningView } from './AssessmentScreeningView';
 
@@ -22,11 +23,8 @@ interface TeacherDashboardProps {
   leads: EnrollmentLead[];
   timelines?: TimelineMilestone[];
   assessments?: CompletedAssessmentRecord[];
-  teacherCredentials: TeacherCredentials;
   cloudSyncStatus?: CloudSyncStatus;
   cloudStatusMessage?: string;
-  onForceSync?: () => Promise<{ success: boolean; count: number; error?: string } | boolean>;
-  onUpdateCredentials: (creds: TeacherCredentials) => void;
   onOpenNewSession: (studentId?: string) => void;
   onOpenNewStudent: () => void;
   onEditStudent: (student: Student) => void;
@@ -44,11 +42,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   leads,
   timelines = [],
   assessments = [],
-  teacherCredentials,
   cloudSyncStatus = 'synced',
   cloudStatusMessage,
-  onForceSync,
-  onUpdateCredentials,
   onOpenNewSession,
   onOpenNewStudent,
   onEditStudent,
@@ -61,44 +56,15 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [activeTab, setActiveTab] = useState<'sessions' | 'students' | 'leads' | 'assessments'>('sessions');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStudentFilter, setSelectedStudentFilter] = useState<string>('all');
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [parentAccountStudent, setParentAccountStudent] = useState<Student | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [settingsInitialTab, setSettingsInitialTab] = useState<'password' | 'google' | 'cloud'>('password');
-  const [isSyncingNow, setIsSyncingNow] = useState(false);
   const [selectedProfileStudent, setSelectedProfileStudent] = useState<Student | null>(null);
   const [assessmentViewMode, setAssessmentViewMode] = useState<'records' | 'runner'>('records');
   const [assessmentStudentForRunner, setAssessmentStudentForRunner] = useState<Student | null>(null);
   const [assessmentSearchQuery, setAssessmentSearchQuery] = useState('');
   const [assessmentScaleFilter, setAssessmentScaleFilter] = useState<string>('all');
-  const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
-  const [firebaseUser, setFirebaseUser] = useState(() => cloudAuth.getCurrentUser());
 
-  useEffect(() => {
-    const unsub = cloudAuth.onAuthChange((u) => {
-      setFirebaseUser(u);
-    });
-    return () => unsub();
-  }, []);
 
-  const handleDirectSync = async () => {
-    if (isSyncingNow) return;
-    setIsSyncingNow(true);
-    setSyncFeedback('جاري مزامنة وتأمين كافة بيانات الطلاب في Firestore...');
-    try {
-      if (onForceSync) {
-        const syncRes = await onForceSync();
-        const isOk = typeof syncRes === 'boolean' ? syncRes : syncRes.success;
-        const count = typeof syncRes === 'object' && syncRes.count ? ` (${syncRes.count} عنصر)` : '';
-        const errorMsg = typeof syncRes === 'object' && syncRes.error ? syncRes.error : 'فشلت المزامنة';
-        setSyncFeedback(isOk ? `تمت المزامنة السحابية وتأمين البيانات في Firestore بنجاح${count} 🟢` : errorMsg);
-      }
-    } catch (e: any) {
-      setSyncFeedback(e?.message || 'حدث خطأ في المزامنة');
-    } finally {
-      setIsSyncingNow(false);
-      setTimeout(() => setSyncFeedback(null), 4000);
-    }
-  };
 
   // Filtered Sessions
   const filteredSessions = sessions.filter((s) => {
@@ -117,21 +83,6 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     ? (sessions.reduce((acc, s) => acc + (s.understandingScore || 0), 0) / sessions.length).toFixed(1) 
     : '5.0';
 
-  const handleCopyCredentials = (std: Student) => {
-    const pass = std.parentPassword || (std.parentAccessCode ? `OFQ-${std.parentAccessCode}` : `OFQ${std.id.slice(-4)}`);
-    const text = `مرحباً ${std.parentName}،\nبيانات دخولكم لمتابعة تقارير وجلسات الطالب (${std.name}) في منصة أُفق (Ofoq):\n• اسم المستخدم: ${std.parentUsername || std.parentPhone}\n• كلمة المرور: ${pass}\nرابط الدخول للمنصة:\n${window.location.origin}`;
-    navigator.clipboard.writeText(text);
-    setCopiedId(std.id);
-    setTimeout(() => setCopiedId(null), 2500);
-  };
-
-  const handleSendCredentialsWhatsApp = (std: Student) => {
-    const pass = std.parentPassword || (std.parentAccessCode ? `OFQ-${std.parentAccessCode}` : `OFQ${std.id.slice(-4)}`);
-    const text = `مرحباً ${std.parentName}،\nبيانات دخولكم لمتابعة تقارير وجلسات الطالب (${std.name}) في منصة أُفق (Ofoq):\n• اسم المستخدم: ${std.parentUsername || std.parentPhone}\n• كلمة المرور: ${pass}\nرابط الدخول للمنصة:\n${window.location.origin}`;
-    const targetPhone = std.parentPhone || std.motherPhone || '';
-    const url = getWhatsAppUrl(targetPhone, text);
-    window.open(url, '_blank');
-  };
 
   return (
     <div id="teacher-dashboard-view" className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#f0f7fc] dark:bg-[#080d1a] text-slate-800 dark:text-slate-100 pb-20 transition-colors duration-200">
@@ -160,35 +111,28 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
           {/* Action Buttons Toolbar */}
           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-            {/* Cloud Firestore Status Badge */}
-            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-blue-900/40 text-[10px] sm:text-[11px] font-bold">
-              {isSyncingNow ? (
-                <span className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
-                  <RefreshCw className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 animate-spin" />
-                  <span className="hidden md:inline">جاري المزامنة...</span>
+            {/* Cloud Status Badge */}
+            <div
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-blue-900/40 text-[10px] sm:text-[11px] font-bold"
+              title={cloudStatusMessage}
+            >
+              {cloudSyncStatus === 'synced' ? (
+                <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <Cloud className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">متصل</span>
+                </span>
+              ) : cloudSyncStatus === 'error' || cloudSyncStatus === 'offline' ? (
+                <span className="flex items-center gap-1.5 text-rose-700 dark:text-rose-400">
+                  <CloudOff className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">{cloudSyncStatus === 'offline' ? 'غير متصل' : 'خطأ في المزامنة'}</span>
                 </span>
               ) : (
-                <button
-                  type="button"
-                  onClick={handleDirectSync}
-                  className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 transition cursor-pointer"
-                  title="سحابة Firestore متصلة ومباشرة - انقر للمزامنة الفورية الآن"
-                >
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <Cloud className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span className="hidden md:inline">سحابي متصل</span>
-                </button>
+                <span className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span className="hidden md:inline">جاري المزامنة...</span>
+                </span>
               )}
-
-              <button
-                type="button"
-                onClick={handleDirectSync}
-                disabled={isSyncingNow}
-                title="مزامنة فورية مع قاعدة بيانات Firestore"
-                className="p-0.5 hover:bg-slate-200 dark:hover:bg-[#152244] rounded text-slate-600 dark:text-slate-400 hover:text-blue-700 dark:hover:text-blue-300 transition cursor-pointer"
-              >
-                <RefreshCw className={`w-3 h-3 ${isSyncingNow ? 'animate-spin text-blue-600 dark:text-blue-400' : ''}`} />
-              </button>
             </div>
 
             {/* Theme Toggle Button */}
@@ -208,11 +152,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             {/* Account Settings Button */}
             <button
               id="teacher-settings-btn"
-              onClick={() => {
-                setSettingsInitialTab('password');
-                setIsSettingsOpen(true);
-              }}
-              title="إعدادات الحساب وكلمة المرور وقاعدة البيانات"
+              onClick={() => setIsSettingsOpen(true)}
+              title="إعدادات الحساب وكلمة المرور"
               className="p-2 rounded-xl bg-white dark:bg-[#0f172a] hover:bg-blue-50 dark:hover:bg-[#152244] text-slate-700 dark:text-slate-200 hover:text-blue-800 dark:hover:text-blue-300 border border-slate-200 dark:border-blue-900/40 text-xs font-bold transition shadow-2xs relative"
             >
               <KeyRound className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
@@ -230,14 +171,6 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
         </div>
       </header>
-
-      {/* Sync Feedback Toast */}
-      {syncFeedback && (
-        <div className="bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 text-center animate-in slide-in-from-top duration-200 flex items-center justify-center gap-2 shadow-md">
-          <Cloud className="w-4 h-4 text-emerald-200 shrink-0" />
-          <span>{syncFeedback}</span>
-        </div>
-      )}
 
       {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-5 space-y-6 w-full">
@@ -738,47 +671,26 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                           </div>
                         )}
 
-                        {/* Account Access Details Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 bg-white dark:bg-[#080d1a] rounded-lg border border-blue-100 dark:border-blue-900/40">
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="text-slate-500 dark:text-slate-400 text-[10px] flex items-center gap-1">
-                              <User className="w-3 h-3 text-blue-600 dark:text-blue-400 shrink-0" />
-                              <span>المستخدم:</span>
-                            </span>
-                            <span className="font-mono font-bold text-blue-900 dark:text-blue-300 text-[11px] truncate">
-                              {std.parentUsername || std.parentPhone}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="text-slate-500 dark:text-slate-400 text-[10px] flex items-center gap-1">
-                              <Lock className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />
-                              <span>السر:</span>
-                            </span>
-                            <span className="font-mono font-bold text-amber-700 dark:text-amber-300 text-[11px]">
-                              {std.parentPassword || (std.parentAccessCode ? `OFQ-${std.parentAccessCode}` : `OFQ${std.id.slice(-4)}`)}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Actions Grid for Copy/WhatsApp */}
-                        <div className="grid grid-cols-2 gap-2 pt-1">
+                        {/* Parent account status */}
+                        <div className="flex items-center justify-between gap-2 p-2 bg-white dark:bg-[#080d1a] rounded-lg border border-blue-100 dark:border-blue-900/40">
+                          <span className="text-slate-500 dark:text-slate-400 text-[10px] flex items-center gap-1 min-w-0">
+                            <User className="w-3 h-3 text-blue-600 dark:text-blue-400 shrink-0" />
+                            <span className="shrink-0">حساب ولي الأمر:</span>
+                            {std.parentUid ? (
+                              <span dir="ltr" className="font-mono font-bold text-blue-900 dark:text-blue-300 text-[11px] truncate">
+                                {std.parentUsername || 'مفعّل'}
+                              </span>
+                            ) : (
+                              <span className="font-bold text-amber-700 dark:text-amber-400 text-[11px]">لم يُنشأ بعد</span>
+                            )}
+                          </span>
                           <button
                             type="button"
-                            onClick={() => handleCopyCredentials(std)}
-                            className="py-1.5 px-2 rounded-lg bg-white dark:bg-[#0f172a] hover:bg-slate-50 dark:hover:bg-[#152244] text-slate-700 dark:text-slate-200 text-[10px] font-bold border border-slate-200 dark:border-blue-900/40 flex items-center justify-center gap-1 transition cursor-pointer"
+                            onClick={() => setParentAccountStudent(std)}
+                            className="shrink-0 py-1.5 px-2.5 rounded-lg bg-white dark:bg-[#0f172a] hover:bg-slate-50 dark:hover:bg-[#152244] text-slate-700 dark:text-slate-200 text-[10px] font-bold border border-slate-200 dark:border-blue-900/40 flex items-center gap-1 transition cursor-pointer"
                           >
-                            {copiedId === std.id ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-slate-500" />}
-                            <span>{copiedId === std.id ? 'تم النسخ' : 'نسخ الحساب'}</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleSendCredentialsWhatsApp(std)}
-                            className="py-1.5 px-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold border border-emerald-200 dark:border-emerald-900/40 flex items-center justify-center gap-1 transition cursor-pointer"
-                          >
-                            <Send className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                            <span>إرسال بالواتساب</span>
+                            <KeyRound className="w-3 h-3 text-slate-500" />
+                            <span>{std.parentUid ? 'إدارة الحساب' : 'إنشاء حساب'}</span>
                           </button>
                         </div>
                       </div>
@@ -1209,14 +1121,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
       {/* Account Settings Modal */}
       {isSettingsOpen && (
-        <AccountSettingsModal
-          currentCredentials={teacherCredentials}
-          initialTab={settingsInitialTab}
-          onSave={(creds) => {
-            onUpdateCredentials(creds);
-            setIsSettingsOpen(false);
-          }}
-          onClose={() => setIsSettingsOpen(false)}
+        <AccountSettingsModal onClose={() => setIsSettingsOpen(false)} />
+      )}
+
+      {/* Parent Account Modal */}
+      {parentAccountStudent && (
+        <ParentAccountModal
+          student={students.find((x) => x.id === parentAccountStudent.id) || parentAccountStudent}
+          onClose={() => setParentAccountStudent(null)}
         />
       )}
     </div>

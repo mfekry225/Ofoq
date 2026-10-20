@@ -1,30 +1,42 @@
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  deleteDoc, 
-  getDocs, 
+import {
+  collection,
+  doc,
+  setDoc,
+  deleteDoc,
   getDoc,
-  getDocFromServer,
-  onSnapshot 
+  updateDoc,
+  deleteField,
+  onSnapshot,
+  query,
+  where,
+  writeBatch,
+  QuerySnapshot,
+  DocumentData,
 } from 'firebase/firestore';
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signInAnonymously, 
-  signOut, 
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
   onAuthStateChanged,
-  GoogleAuthProvider,
-  signInWithPopup,
   sendPasswordResetEmail,
   updatePassword,
-  User as FirebaseUser 
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  User as FirebaseUser,
 } from 'firebase/auth';
-import { db, auth } from './firebase';
-import { Student, SessionRecord, TimelineMilestone, EnrollmentLead, TeacherProfile, TeacherCredentials, CompletedAssessmentRecord } from './types';
-import { storage } from './storage';
+import { db, auth, getProvisioningAuth } from './firebase';
+import {
+  Student,
+  SessionRecord,
+  TimelineMilestone,
+  EnrollmentLead,
+  TeacherProfile,
+  CompletedAssessmentRecord,
+} from './types';
 
-// Enum and error formatting conforming to Firebase Skill specification
+// ---------------------------------------------------------------------------
+// أدوات عامة
+// ---------------------------------------------------------------------------
 export enum OperationType {
   CREATE = 'create',
   UPDATE = 'update',
@@ -34,678 +46,233 @@ export enum OperationType {
   WRITE = 'write',
 }
 
-export interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId?: string | null;
-    email?: string | null;
-    emailVerified?: boolean | null;
-    isAnonymous?: boolean | null;
-    tenantId?: string | null;
-    providerInfo?: {
-      providerId?: string | null;
-      email?: string | null;
-    }[];
-  };
-}
-
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo: FirestoreErrorInfo = {
+  const info = {
     error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData?.map(provider => ({
-        providerId: provider.providerId,
-        email: provider.email,
-      })) || []
-    },
     operationType,
-    path
+    path,
+    uid: auth.currentUser?.uid ?? null,
   };
-  console.warn('Firestore Error Context:', JSON.stringify(errInfo));
-  return errInfo;
+  console.warn('Firestore error:', JSON.stringify(info));
+  return info;
 }
 
-// Strip undefined fields because Firestore throws an error on undefined
+// Firestore لا يقبل القيم undefined
 function sanitize<T extends Record<string, any>>(obj: T): Record<string, any> {
   const clean: Record<string, any> = {};
   for (const [key, value] of Object.entries(obj)) {
-    if (value !== undefined) {
-      if (value && typeof value === 'object' && !Array.isArray(value)) {
-        clean[key] = sanitize(value);
-      } else {
-        clean[key] = value;
-      }
-    }
+    if (value === undefined) continue;
+    clean[key] = value && typeof value === 'object' && !Array.isArray(value) ? sanitize(value) : value;
   }
   return clean;
 }
 
 export type CloudSyncStatus = 'connecting' | 'synced' | 'syncing' | 'offline' | 'error';
 
-export const cloudService = {
-  // Test connection directly to Firestore server
-  testConnection: async (): Promise<boolean> => {
-    try {
-      await getDocFromServer(doc(db, 'test', 'connection'));
-      return true;
-    } catch (e: any) {
-      if (e?.message?.includes('the client is offline')) {
-        console.warn('Firestore offline detected:', e);
-        return false;
-      }
-      // Any server handshake means network connection to Firestore is functioning
-      return true;
-    }
-  },
+// حسابات أولياء الأمور تُنشأ باسم مستخدم فقط. داخلياً يُحوَّل الاسم إلى بريد وهمي
+// لا يُرسَل إليه أي شيء ولا يراه أحد. غيّر النطاق هنا فقط إن احتجت (لا يؤثر على الأمان).
+const PARENT_EMAIL_DOMAIN = 'ofoq-parents.invalid';
+export const USERNAME_RULE = /^[a-z0-9][a-z0-9_-]{2,29}$/;
+export const MIN_PARENT_PASSWORD = 8;
 
-  // Save or update a student
-  saveStudent: async (student: Student): Promise<boolean> => {
-    const path = `students/${student.id}`;
-    try {
-      const ref = doc(db, 'students', student.id);
-      await setDoc(ref, sanitize(student), { merge: true });
-      return true;
-    } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, path);
-      return false;
-    }
-  },
+function identifierToEmail(identifier: string): string {
+  const v = identifier.trim().toLowerCase();
+  return v.includes('@') ? v : `${v}@${PARENT_EMAIL_DOMAIN}`;
+}
 
-  // Delete a student
-  deleteStudent: async (studentId: string): Promise<boolean> => {
-    const path = `students/${studentId}`;
-    try {
-      const ref = doc(db, 'students', studentId);
-      await deleteDoc(ref);
-      return true;
-    } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, path);
-      return false;
-    }
-  },
+const byDateDesc = <T extends Record<string, any>>(key: string) => (a: T, b: T) =>
+  String(b[key] || '').localeCompare(String(a[key] || ''));
 
-  // Save or update a session
-  saveSession: async (session: SessionRecord): Promise<boolean> => {
-    const path = `sessions/${session.id}`;
-    try {
-      const ref = doc(db, 'sessions', session.id);
-      await setDoc(ref, sanitize(session), { merge: true });
-      return true;
-    } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, path);
-      return false;
-    }
-  },
+function toList<T>(snap: QuerySnapshot<DocumentData>): T[] {
+  return snap.docs.map((d) => d.data() as T);
+}
 
-  // Save timeline milestone
-  saveTimeline: async (timeline: TimelineMilestone): Promise<boolean> => {
-    const path = `timelines/${timeline.id}`;
-    try {
-      const ref = doc(db, 'timelines', timeline.id);
-      await setDoc(ref, sanitize(timeline), { merge: true });
-      return true;
-    } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, path);
-      return false;
-    }
-  },
+// ---------------------------------------------------------------------------
+// الخدمة السحابية
+// ---------------------------------------------------------------------------
+export interface OwnerCallbacks {
+  onStudents: (list: Student[]) => void;
+  onSessions: (list: SessionRecord[]) => void;
+  onTimelines: (list: TimelineMilestone[]) => void;
+  onLeads: (list: EnrollmentLead[]) => void;
+  onAssessments: (list: CompletedAssessmentRecord[]) => void;
+  onStatusChange: (status: CloudSyncStatus, message?: string) => void;
+}
 
-  // Save lead
-  saveLead: async (lead: EnrollmentLead): Promise<boolean> => {
-    const path = `leads/${lead.id}`;
-    try {
-      const ref = doc(db, 'leads', lead.id);
-      await setDoc(ref, sanitize(lead), { merge: true });
-      return true;
-    } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, path);
-      return false;
-    }
-  },
+export interface ParentCallbacks {
+  onStudent: (student: Student | null) => void;
+  onSessions: (list: SessionRecord[]) => void;
+  onTimelines: (list: TimelineMilestone[]) => void;
+  onAssessments: (list: CompletedAssessmentRecord[]) => void;
+  onStatusChange: (status: CloudSyncStatus, message?: string) => void;
+}
 
-  // Save Completed Assessment Record
-  saveAssessment: async (assessment: CompletedAssessmentRecord): Promise<boolean> => {
-    const path = `assessments/${assessment.id}`;
-    try {
-      const ref = doc(db, 'assessments', assessment.id);
-      await setDoc(ref, sanitize(assessment), { merge: true });
-      return true;
-    } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, path);
-      return false;
-    }
-  },
-
-  // Delete Completed Assessment Record
-  deleteAssessment: async (assessmentId: string): Promise<boolean> => {
-    const path = `assessments/${assessmentId}`;
-    try {
-      const ref = doc(db, 'assessments', assessmentId);
-      await deleteDoc(ref);
-      return true;
-    } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, path);
-      return false;
-    }
-  },
-
-  // Save Teacher Settings (credentials & profile)
-  saveTeacherSettings: async (creds: TeacherCredentials, profile: TeacherProfile): Promise<boolean> => {
-    const path = 'app_settings/teacher';
-    try {
-      const ref = doc(db, 'app_settings', 'teacher');
-      const safeCreds = {
-        email: creds.email,
-        googleAccount: creds.googleAccount,
-      };
-      await setDoc(ref, {
-        credentials: sanitize(safeCreds),
-        profile: sanitize(profile),
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
-
-      // Also update public profile document for parents & visitors
-      await setDoc(doc(db, 'app_settings', 'profile'), sanitize(profile), { merge: true });
-      return true;
-    } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, path);
-      return false;
-    }
-  },
-
-  // Initial Sync and Real-time listener registration for ALL clients (Multi-Device & Cross-Browser)
-  subscribeToCloud: (callbacks: {
-    onStudentsUpdate: (students: Student[]) => void;
-    onSessionsUpdate: (sessions: SessionRecord[]) => void;
-    onTimelinesUpdate: (timelines: TimelineMilestone[]) => void;
-    onLeadsUpdate: (leads: EnrollmentLead[]) => void;
-    onAssessmentsUpdate?: (assessments: CompletedAssessmentRecord[]) => void;
-    onSettingsUpdate: (creds?: TeacherCredentials, profile?: TeacherProfile) => void;
-    onStatusChange: (status: CloudSyncStatus, message?: string) => void;
-  }): (() => void) => {
-    let isDisposed = false;
-    callbacks.onStatusChange('syncing', 'جاري المزامنة مع سحابة Firebase...');
-
-    // 1. App Settings / Teacher Profile listener
-    let unsubProfile = () => {};
-    try {
-      unsubProfile = onSnapshot(doc(db, 'app_settings', 'profile'), (snapshot) => {
-        if (isDisposed) return;
-        if (snapshot.exists()) {
-          const data = snapshot.data();
-          if (data) {
-            callbacks.onSettingsUpdate(undefined, data as TeacherProfile);
-            storage.saveTeacherProfile(data as TeacherProfile);
-          }
-        }
-      }, (err) => console.warn('Public profile notice:', err.message));
-    } catch (e) {
-      console.warn('Profile listener error:', e);
-    }
-
-    // 2. Initial Fast Fetch across all collections
-    const performInitialFetchAndSync = async () => {
-      try {
-        const [studentsSnap, sessionsSnap, timelinesSnap, leadsSnap, assessmentsSnap] = await Promise.all([
-          getDocs(collection(db, 'students')),
-          getDocs(collection(db, 'sessions')),
-          getDocs(collection(db, 'timelines')),
-          getDocs(collection(db, 'leads')),
-          getDocs(collection(db, 'assessments'))
-        ]);
-
-        if (isDisposed) return;
-
-        if (!studentsSnap.empty) {
-          const list: Student[] = [];
-          studentsSnap.forEach((d) => list.push(d.data() as Student));
-          list.sort((a, b) => (b.joinedAt || '').localeCompare(a.joinedAt || ''));
-          callbacks.onStudentsUpdate(list);
-          storage.saveStudents(list);
-        } else {
-          // If Firestore is empty, seed initial data to cloud so all devices stay in sync
-          const localStudents = storage.getStudents();
-          if (localStudents && localStudents.length > 0) {
-            for (const s of localStudents) {
-              setDoc(doc(db, 'students', s.id), sanitize(s), { merge: true }).catch(() => {});
-            }
-          }
-        }
-
-        if (!sessionsSnap.empty) {
-          const list: SessionRecord[] = [];
-          sessionsSnap.forEach((d) => list.push(d.data() as SessionRecord));
-          list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-          callbacks.onSessionsUpdate(list);
-          storage.saveSessions(list);
-        }
-
-        if (!timelinesSnap.empty) {
-          const list: TimelineMilestone[] = [];
-          timelinesSnap.forEach((d) => list.push(d.data() as TimelineMilestone));
-          callbacks.onTimelinesUpdate(list);
-          storage.saveTimelines(list);
-        }
-
-        if (!leadsSnap.empty) {
-          const list: EnrollmentLead[] = [];
-          leadsSnap.forEach((d) => list.push(d.data() as EnrollmentLead));
-          callbacks.onLeadsUpdate(list);
-          storage.saveLeads(list);
-        }
-
-        if (!assessmentsSnap.empty) {
-          const list: CompletedAssessmentRecord[] = [];
-          assessmentsSnap.forEach((d) => list.push(d.data() as CompletedAssessmentRecord));
-          list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-          if (callbacks.onAssessmentsUpdate) {
-            callbacks.onAssessmentsUpdate(list);
-          }
-          storage.saveAssessments(list);
-        }
-
-        callbacks.onStatusChange('synced', 'متصل وسحابي بنسبة 100% مع Firebase 🟢');
-      } catch (err: any) {
-        console.warn('Initial cloud sync notice:', err);
-      }
-    };
-
-    performInitialFetchAndSync();
-
-    // 3. Attach Live Real-Time Snapshot Listeners unconditionally
-    const unsubStudents = onSnapshot(collection(db, 'students'), (snapshot) => {
-      if (isDisposed) return;
-      callbacks.onStatusChange('synced', 'متصل وسحابي بنسبة 100% مع Firebase 🟢');
-      const list: Student[] = [];
-      snapshot.forEach((docSnap) => list.push(docSnap.data() as Student));
-      if (list.length > 0) {
-        list.sort((a, b) => (b.joinedAt || '').localeCompare(a.joinedAt || ''));
-        callbacks.onStudentsUpdate(list);
-        storage.saveStudents(list);
-      }
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'students'));
-
-    const unsubSessions = onSnapshot(collection(db, 'sessions'), (snapshot) => {
-      if (isDisposed) return;
-      const list: SessionRecord[] = [];
-      snapshot.forEach((docSnap) => list.push(docSnap.data() as SessionRecord));
-      if (list.length > 0) {
-        list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-        callbacks.onSessionsUpdate(list);
-        storage.saveSessions(list);
-      }
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'sessions'));
-
-    const unsubTimelines = onSnapshot(collection(db, 'timelines'), (snapshot) => {
-      if (isDisposed) return;
-      const list: TimelineMilestone[] = [];
-      snapshot.forEach((docSnap) => list.push(docSnap.data() as TimelineMilestone));
-      if (list.length > 0) {
-        callbacks.onTimelinesUpdate(list);
-        storage.saveTimelines(list);
-      }
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'timelines'));
-
-    const unsubLeads = onSnapshot(collection(db, 'leads'), (snapshot) => {
-      if (isDisposed) return;
-      const list: EnrollmentLead[] = [];
-      snapshot.forEach((docSnap) => list.push(docSnap.data() as EnrollmentLead));
-      callbacks.onLeadsUpdate(list);
-      storage.saveLeads(list);
-    }, (err) => console.warn('Leads live listener notice:', err.message));
-
-    const unsubAssessments = onSnapshot(collection(db, 'assessments'), (snapshot) => {
-      if (isDisposed) return;
-      const list: CompletedAssessmentRecord[] = [];
-      snapshot.forEach((docSnap) => list.push(docSnap.data() as CompletedAssessmentRecord));
-      list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-      if (callbacks.onAssessmentsUpdate) {
-        callbacks.onAssessmentsUpdate(list);
-      }
-      storage.saveAssessments(list);
-    }, (err) => console.warn('Assessments live listener notice:', err.message));
-
-    return () => {
-      isDisposed = true;
-      unsubProfile();
-      unsubStudents();
-      unsubSessions();
-      unsubTimelines();
-      unsubLeads();
-      unsubAssessments();
-    };
-  },
-
-  // Explicit cloud upload/backup
-  backupAllToCloud: async (): Promise<{ success: boolean; count: number; error?: string }> => {
-    try {
-      const students = storage.getStudents();
-      const sessions = storage.getSessions();
-      const timelines = storage.getTimelines();
-      const leads = storage.getLeads();
-      const assessments = storage.getAssessments();
-      const creds = storage.getTeacherCredentials();
-      const profile = storage.getTeacherProfile();
-
-      const promises: Promise<any>[] = [];
-
-      for (const std of students) {
-        promises.push(setDoc(doc(db, 'students', std.id), sanitize(std), { merge: true }));
-      }
-      for (const ses of sessions) {
-        promises.push(setDoc(doc(db, 'sessions', ses.id), sanitize(ses), { merge: true }));
-      }
-      for (const tm of timelines) {
-        promises.push(setDoc(doc(db, 'timelines', tm.id), sanitize(tm), { merge: true }));
-      }
-      for (const ld of leads) {
-        promises.push(setDoc(doc(db, 'leads', ld.id), sanitize(ld), { merge: true }));
-      }
-      for (const ass of assessments) {
-        promises.push(setDoc(doc(db, 'assessments', ass.id), sanitize(ass), { merge: true }));
-      }
-      promises.push(setDoc(doc(db, 'app_settings', 'profile'), sanitize(profile), { merge: true }));
-      promises.push(setDoc(doc(db, 'app_settings', 'teacher'), {
-        credentials: sanitize({ email: creds.email, googleAccount: creds.googleAccount }),
-        profile: sanitize(profile),
-        updatedAt: new Date().toISOString()
-      }, { merge: true }));
-
-      await Promise.all(promises);
-      return { 
-        success: true, 
-        count: students.length + sessions.length + timelines.length + leads.length + assessments.length
-      };
-    } catch (err: any) {
-      console.error('Backup to cloud failed:', err);
-      return { 
-        success: false, 
-        count: 0, 
-        error: err?.message || 'حدث خطأ في المزامنة السحابية.'
-      };
-    }
-  }
-};
-
-// Cryptographic helper to securely hash passwords locally (Zero-Knowledge, never plaintext)
-async function hashSecret(str: string): Promise<string> {
+async function write(path: string, fn: () => Promise<unknown>, op: OperationType = OperationType.WRITE): Promise<boolean> {
   try {
-    const msgUint8 = new TextEncoder().encode(str);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  } catch {
-    return str;
+    await fn();
+    return true;
+  } catch (err) {
+    handleFirestoreError(err, op, path);
+    return false;
   }
 }
 
+export const cloudService = {
+  // ----- كتابة (الأخصائي فقط، باستثناء طلبات التسجيل والتقييمات كما تحددها القواعد) -----
+  saveStudent: (student: Student) =>
+    write(`students/${student.id}`, () => setDoc(doc(db, 'students', student.id), sanitize(student), { merge: true })),
+
+  deleteStudent: (studentId: string) =>
+    write(`students/${studentId}`, () => deleteDoc(doc(db, 'students', studentId)), OperationType.DELETE),
+
+  saveSession: (session: SessionRecord) =>
+    write(`sessions/${session.id}`, () => setDoc(doc(db, 'sessions', session.id), sanitize(session), { merge: true })),
+
+  saveTimeline: (timeline: TimelineMilestone) =>
+    write(`timelines/${timeline.id}`, () => setDoc(doc(db, 'timelines', timeline.id), sanitize(timeline), { merge: true })),
+
+  saveLead: (lead: EnrollmentLead) =>
+    write(`leads/${lead.id}`, () => setDoc(doc(db, 'leads', lead.id), sanitize(lead), { merge: true })),
+
+  saveAssessment: (assessment: CompletedAssessmentRecord) =>
+    write(`assessments/${assessment.id}`, () => setDoc(doc(db, 'assessments', assessment.id), sanitize(assessment), { merge: true })),
+
+  deleteAssessment: (assessmentId: string) =>
+    write(`assessments/${assessmentId}`, () => deleteDoc(doc(db, 'assessments', assessmentId)), OperationType.DELETE),
+
+  saveProfile: (profile: TeacherProfile) =>
+    write('app_settings/profile', () => setDoc(doc(db, 'app_settings', 'profile'), sanitize(profile), { merge: true })),
+
+  // ----- الملف العام للأخصائي (متاح للزوار) -----
+  subscribePublicProfile: (onProfile: (profile: TeacherProfile) => void): (() => void) =>
+    onSnapshot(
+      doc(db, 'app_settings', 'profile'),
+      (snap) => {
+        if (snap.exists()) onProfile(snap.data() as TeacherProfile);
+      },
+      (err) => handleFirestoreError(err, OperationType.GET, 'app_settings/profile')
+    ),
+
+  // ----- اشتراك الأخصائي: كل البيانات -----
+  subscribeOwner: (cb: OwnerCallbacks): (() => void) => {
+    cb.onStatusChange('syncing', 'جاري المزامنة...');
+    const purged = new Set<string>();
+    const fail = (path: string) => (err: Error) => {
+      handleFirestoreError(err, OperationType.LIST, path);
+      cb.onStatusChange('error', 'تعذر تحميل البيانات. تأكد من تسجيل الدخول ومن نشر قواعد Firestore.');
+    };
+
+    const unsubs = [
+      onSnapshot(collection(db, 'students'), (snap) => {
+        // تنظيف تلقائي لأي كلمات مرور قديمة كانت محفوظة نصاً داخل مستندات الطلاب
+        snap.docs.forEach((d) => {
+          const data = d.data();
+          if (!purged.has(d.id) && ('parentPassword' in data || 'parentAccessCode' in data)) {
+            purged.add(d.id);
+            updateDoc(d.ref, { parentPassword: deleteField(), parentAccessCode: deleteField() }).catch(() => {});
+          }
+        });
+        const list = toList<Student>(snap).map((s) => {
+          const { parentPassword, parentAccessCode, ...safe } = s as Student & { parentPassword?: string; parentAccessCode?: string };
+          return safe as Student;
+        });
+        cb.onStudents(list.sort(byDateDesc('joinedAt')));
+        cb.onStatusChange('synced', 'متصل ومزامَن مع Firebase');
+      }, fail('students')),
+      onSnapshot(collection(db, 'sessions'), (snap) => cb.onSessions(toList<SessionRecord>(snap).sort(byDateDesc('date'))), fail('sessions')),
+      onSnapshot(collection(db, 'timelines'), (snap) => cb.onTimelines(toList<TimelineMilestone>(snap).sort(byDateDesc('date'))), fail('timelines')),
+      onSnapshot(collection(db, 'leads'), (snap) => cb.onLeads(toList<EnrollmentLead>(snap).sort(byDateDesc('createdAt'))), fail('leads')),
+      onSnapshot(collection(db, 'assessments'), (snap) => cb.onAssessments(toList<CompletedAssessmentRecord>(snap).sort(byDateDesc('date'))), fail('assessments')),
+    ];
+    return () => unsubs.forEach((u) => u());
+  },
+
+  // ----- اشتراك ولي الأمر: ملف طفله فقط -----
+  subscribeParent: (studentId: string, cb: ParentCallbacks): (() => void) => {
+    cb.onStatusChange('syncing', 'جاري التحميل...');
+    const fail = (path: string) => (err: Error) => {
+      handleFirestoreError(err, OperationType.GET, path);
+      cb.onStatusChange('error', 'تعذر تحميل البيانات. تواصل مع الأخصائي.');
+    };
+    const forStudent = (name: string) => query(collection(db, name), where('studentId', '==', studentId));
+
+    const unsubs = [
+      onSnapshot(doc(db, 'students', studentId), (snap) => {
+        cb.onStudent(snap.exists() ? (snap.data() as Student) : null);
+        cb.onStatusChange('synced', 'متصل');
+      }, fail(`students/${studentId}`)),
+      onSnapshot(forStudent('sessions'), (snap) => cb.onSessions(toList<SessionRecord>(snap).sort(byDateDesc('date'))), fail('sessions')),
+      onSnapshot(forStudent('timelines'), (snap) => cb.onTimelines(toList<TimelineMilestone>(snap).sort(byDateDesc('date'))), fail('timelines')),
+      onSnapshot(forStudent('assessments'), (snap) => cb.onAssessments(toList<CompletedAssessmentRecord>(snap).sort(byDateDesc('date'))), fail('assessments')),
+    ];
+    return () => unsubs.forEach((u) => u());
+  },
+};
+
+// ---------------------------------------------------------------------------
+// المصادقة
+// ---------------------------------------------------------------------------
+export type ResolvedRole =
+  | { role: 'teacher'; user: FirebaseUser }
+  | { role: 'parent'; user: FirebaseUser; studentId: string; username?: string };
+
+const GENERIC_LOGIN_ERROR = 'اسم المستخدم أو كلمة المرور غير صحيحة.';
+
+function authErrorMessage(code?: string): string {
+  switch (code) {
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+    case 'auth/user-not-found':
+    case 'auth/invalid-email':
+      return GENERIC_LOGIN_ERROR;
+    case 'auth/too-many-requests':
+      return 'تم تعليق المحاولات مؤقتاً بسبب تكرار الخطأ. حاول لاحقاً.';
+    case 'auth/network-request-failed':
+      return 'تعذر الاتصال بالإنترنت.';
+    case 'auth/operation-not-allowed':
+      return 'تسجيل الدخول بالبريد وكلمة المرور غير مفعّل في Firebase Authentication.';
+    default:
+      return 'تعذر تسجيل الدخول. حاول مرة أخرى.';
+  }
+}
+
+// الدور يُحدَّد من الخادم (مستندات admins و parents)، وليس من نص البريد ولا من المتصفح.
+async function resolveRole(user: FirebaseUser): Promise<ResolvedRole | null> {
+  try {
+    const admin = await getDoc(doc(db, 'admins', user.uid));
+    if (admin.exists()) return { role: 'teacher', user };
+  } catch {
+    // لا صلاحية = ليس أخصائياً
+  }
+  try {
+    const parent = await getDoc(doc(db, 'parents', user.uid));
+    const studentId = parent.exists() ? (parent.data().studentId as string | undefined) : undefined;
+    if (studentId) return { role: 'parent', user, studentId, username: parent.data()?.username };
+  } catch {
+    // لا صلاحية = ليس ولي أمر
+  }
+  return null;
+}
+
 export const cloudAuth = {
-  // Official Firebase Google Authentication (Strictly Owner mfekry225@gmail.com Only)
-  loginWithGoogle: async (): Promise<{ success: boolean; error?: string; user?: FirebaseUser }> => {
-    try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({
-        prompt: 'select_account'
-      });
-      const result = await signInWithPopup(auth, provider);
-      const email = result.user?.email?.toLowerCase() || '';
+  resolveRole,
 
-      // Strict enforcement: Only owner (mfekry225@outlook.com / mfekry225@gmail.com) is allowed
-      const isAllowedGoogle = email === 'mfekry225@outlook.com' || email === 'mfekry225@gmail.com' || email.includes('mfekry225');
-      if (!isAllowedGoogle) {
+  login: async (identifier: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    const id = identifier.trim();
+    if (!id || !password) return { success: false, error: 'يرجى إدخال اسم المستخدم وكلمة المرور.' };
+    try {
+      const cred = await signInWithEmailAndPassword(auth, identifierToEmail(id), password);
+      const role = await resolveRole(cred.user);
+      if (!role) {
         await signOut(auth);
-        return {
-          success: false,
-          error: `تم رفض تسجيل الدخول: الحساب (${result.user?.email}) غير مصرح له بالوصول إلى لوحة التحكم. المنصة ملك حصري للأخصائي (mfekry225@outlook.com).`
-        };
-      }
-
-      return { success: true, user: result.user };
-    } catch (err: any) {
-      console.warn('Google Sign-In notice:', err);
-      let userMsg = 'تعذر تسجيل الدخول بحساب Google';
-      if (err.code === 'auth/operation-not-allowed') {
-        userMsg = 'مزود Google غير مفعّل بعد في مشروع Firebase. يرجى تفعيله من لوحة تحكم Firebase Console -> Authentication -> Sign-in method، أو تسجيل الدخول بكلمة المرور.';
-      } else if (err.code === 'auth/popup-closed-by-user') {
-        userMsg = 'تم إغلاق نافذة تسجيل الدخول قبل إتمام المصادقة.';
-      } else if (err.code === 'auth/popup-blocked') {
-        userMsg = 'المتصفح حظر النافذة المنبثقة. يرجى السماح بالنوافذ المنبثقة لإتمام الدخول.';
-      } else if (err.code === 'auth/cancelled-popup-request') {
-        userMsg = 'تم إلغاء الطلب المتكرر.';
-      } else if (err.message) {
-        userMsg = err.message;
-      }
-      return { success: false, error: userMsg };
-    }
-  },
-
-  // Secure Parent Verification & Login directly against Cloud Firestore across ANY device or browser
-  loginParent: async (identifier: string, password: string): Promise<{ success: boolean; student?: Student; error?: string }> => {
-    try {
-      const cleanInput = identifier.trim().toLowerCase();
-      const cleanDigits = identifier.replace(/[^0-9]/g, '');
-      const inputPass = password.trim();
-
-      const colRef = collection(db, 'students');
-      const snap = await getDocs(colRef);
-      
-      let matchedStudent: Student | null = null;
-
-      snap.forEach((docSnap) => {
-        if (matchedStudent) return;
-        const s = docSnap.data() as Student;
-        
-        const usernameMatch = s.parentUsername && s.parentUsername.trim().toLowerCase() === cleanInput;
-        const phoneMatch = cleanDigits.length >= 6 && (
-          (s.parentPhone && s.parentPhone.replace(/[^0-9]/g, '').endsWith(cleanDigits.slice(-8))) ||
-          (s.motherPhone && s.motherPhone.replace(/[^0-9]/g, '').endsWith(cleanDigits.slice(-8)))
-        );
-        const accessCodeMatch = s.parentAccessCode && s.parentAccessCode.trim().toUpperCase() === cleanInput.toUpperCase();
-        const nameMatch = (s.parentName && s.parentName.trim().toLowerCase() === cleanInput) ||
-                          (s.name && s.name.trim().toLowerCase() === cleanInput);
-
-        const isUserMatch = usernameMatch || phoneMatch || accessCodeMatch || nameMatch;
-
-        if (isUserMatch) {
-          const passMatch = (s.parentPassword && s.parentPassword.trim() === inputPass) ||
-                            (s.parentAccessCode && s.parentAccessCode.trim().toUpperCase() === inputPass.toUpperCase());
-          if (passMatch) {
-            matchedStudent = s;
-          }
-        }
-      });
-
-      if (matchedStudent) {
-        return { success: true, student: matchedStudent };
-      }
-
-      return { success: false, error: 'اسم المستخدم أو كلمة المرور غير صحيحة.' };
-    } catch (err: any) {
-      console.error('Parent login Firestore query error:', err);
-      return { success: false, error: 'تعذر الاتصال بخوادم الفايربيس للتحقق من الحساب.' };
-    }
-  },
-
-  // Secure Specialist / Owner Login via Firebase Auth (Encrypted on Google Servers with Secure Fallback)
-  loginTeacher: async (email: string, password: string): Promise<{ success: boolean; error?: string; user?: FirebaseUser; warning?: string }> => {
-    try {
-      const cleanEmail = email.trim().toLowerCase();
-      const isSpecialistOwner = 
-        cleanEmail === 'mfekry225@outlook.com' ||
-        cleanEmail === 'mfekry225@gmail.com' ||
-        cleanEmail.includes('mfekry225') ||
-        cleanEmail === 'admin' ||
-        cleanEmail === 'teacher' ||
-        cleanEmail === 'أدمن';
-
-      const targetEmail = (cleanEmail === 'admin' || cleanEmail === 'teacher' || cleanEmail === 'أدمن') 
-        ? 'mfekry225@outlook.com' 
-        : cleanEmail;
-
-      if (!isSpecialistOwner) {
-        return {
-          success: false,
-          error: 'تم رفض الدخول: البريد الإلكتروني غير مصرح له. لوحة التحكم مخصصة لمالك المنصة (mfekry225@outlook.com).'
-        };
-      }
-
-      if (!password || password.length < 6) {
-        return {
-          success: false,
-          error: 'يرجى إدخال كلمة المرور المعتمدة (6 خانات على الأقل).'
-        };
-      }
-
-      // Try Firebase Auth email/password authentication
-      try {
-        const userCred = await signInWithEmailAndPassword(auth, targetEmail, password);
-        return { success: true, user: userCred.user };
-      } catch (signInErr: any) {
-        // If the account does not exist in Firebase Auth yet, automatically register owner's secure credentials
-        if (signInErr.code === 'auth/user-not-found' || signInErr.code === 'auth/invalid-credential') {
-          try {
-            const createCred = await createUserWithEmailAndPassword(auth, targetEmail, password);
-            return { success: true, user: createCred.user };
-          } catch (createErr: any) {
-            if (createErr.code === 'auth/email-already-in-use') {
-              return {
-                success: false,
-                error: 'كلمة المرور غير صحيحة لحساب الإدارة. إذا نسيت كلمة المرور، يمكنك الضغط على "نسيت كلمة المرور" لاستلام رابط التعيين على بريدك الإلكتروني، أو استخدام الدخول السريع بحساب Google.'
-              };
-            }
-            if (createErr.code === 'auth/weak-password') {
-              return {
-                success: false,
-                error: 'كلمة المرور ضعيفة. يرجى اختيار كلمة مرور لا تقل عن 6 خانات.'
-              };
-            }
-            if (createErr.code === 'auth/operation-not-allowed') {
-              signInErr.code = 'auth/operation-not-allowed';
-            } else {
-              return {
-                success: false,
-                error: `تعذر تهيئة الحساب السحابي: ${createErr.message || 'خطأ في التحقق من الحساب'}`
-              };
-            }
-          }
-        }
-
-        // When Firebase project has not enabled Email/Password provider in Console:
-        // Automatically activate Secure Cryptographic SHA-256 verification so the owner is NEVER locked out!
-        if (signInErr.code === 'auth/operation-not-allowed') {
-          try {
-            const passHash = await hashSecret(password);
-            const storedHash = localStorage.getItem('ofoq_owner_pass_hash');
-            const legacyBootstrapHash = await hashSecret('Mh882018');
-
-            const isMatch = 
-              !storedHash || 
-              storedHash === passHash ||
-              passHash === legacyBootstrapHash;
-
-            if (isMatch) {
-              // Store encrypted hash so credentials remain permanent and secure
-              localStorage.setItem('ofoq_owner_pass_hash', passHash);
-
-              try {
-                await signInAnonymously(auth);
-              } catch {
-                // Anonymous auth is optional
-              }
-
-              return {
-                success: true,
-                user: {
-                  email: 'mfekry225@outlook.com',
-                  displayName: 'أ. محمد فكري (المالك)',
-                  uid: 'owner-mfekry225'
-                } as unknown as FirebaseUser,
-                warning: 'تم تسجيل الدخول بنجاح عبر النظام المشفر. (لتفعيل ربط Firebase السحابي، قم بتفعيل خيار Email/Password في Firebase Console).'
-              };
-            } else {
-              return {
-                success: false,
-                error: 'كلمة المرور غير صحيحة لحساب المالك (mfekry225@outlook.com).'
-              };
-            }
-          } catch {
-            return {
-              success: false,
-              error: 'حدث خطأ أثناء معالجة بيانات الأمان.'
-            };
-          }
-        }
-
-        if (signInErr.code === 'auth/wrong-password') {
-          return {
-            success: false,
-            error: 'كلمة المرور غير صحيحة لحساب الإدارة في Firebase. يمكنك طلب رابط استعادة كلمة المرور لبريدك الإلكتروني.'
-          };
-        }
-
-        if (signInErr.code === 'auth/too-many-requests') {
-          return {
-            success: false,
-            error: 'تم تعليق المحاولات مؤقتاً لحماية الحساب بسبب تكرار كلمة المرور الخاطئة. يرجى المحاولة لاحقاً أو استخدام الدخول بحساب Google.'
-          };
-        }
-
-        return {
-          success: false,
-          error: signInErr.message || 'حدث خطأ أثناء المصادقة المشفرة مع Firebase Auth'
-        };
-      }
-    } catch (e: any) {
-      return { success: false, error: e?.message || 'حدث خطأ في التحقق من البيانات' };
-    }
-  },
-
-  // Send encrypted password reset email via Firebase Auth
-  sendPasswordReset: async (email: string = 'mfekry225@outlook.com'): Promise<{ success: boolean; message: string }> => {
-    try {
-      await sendPasswordResetEmail(auth, email.trim());
-      return {
-        success: true,
-        message: `تم إرسال رابط إعادة تعيين كلمة المرور المشفر إلى بريدك الإلكتروني (${email}) بنجاح. يرجى فحص صندوق الوارد.`
-      };
-    } catch (err: any) {
-      return {
-        success: false,
-        message: err?.message || 'تعذر إرسال رابط استعادة كلمة المرور.'
-      };
-    }
-  },
-
-  // Update password in Firebase Auth directly and in local encrypted vault
-  changeAdminPassword: async (newPassword: string): Promise<{ success: boolean; error?: string }> => {
-    try {
-      const hash = await hashSecret(newPassword);
-      localStorage.setItem('ofoq_owner_pass_hash', hash);
-
-      if (auth.currentUser) {
-        try {
-          await updatePassword(auth.currentUser, newPassword);
-        } catch (err: any) {
-          if (err.code === 'auth/requires-recent-login') {
-            return { success: false, error: 'لحماية حسابك، يرجى تسجيل الخروج وإعادة تسجيل الدخول قبل تغيير كلمة المرور في خوادم Google.' };
-          }
-          console.warn('Firebase Auth password update note:', err);
-        }
+        return { success: false, error: 'هذا الحساب غير مفعّل في المنصة. تواصل مع الأخصائي.' };
       }
       return { success: true };
     } catch (err: any) {
-      return { success: false, error: err?.message || 'فشل تحديث كلمة المرور.' };
+      return { success: false, error: authErrorMessage(err?.code) };
     }
   },
 
-  // Logout from Firebase
   logout: async (): Promise<void> => {
     try {
       await signOut(auth);
@@ -714,13 +281,98 @@ export const cloudAuth = {
     }
   },
 
-  // Subscribe to Auth State Changes
-  onAuthChange: (callback: (user: FirebaseUser | null) => void): (() => void) => {
-    return onAuthStateChanged(auth, callback);
+  onAuthChange: (callback: (user: FirebaseUser | null) => void): (() => void) => onAuthStateChanged(auth, callback),
+
+  getCurrentUser: (): FirebaseUser | null => auth.currentUser,
+
+  // استعادة كلمة مرور الأخصائي عبر بريده الحقيقي فقط
+  sendPasswordReset: async (email: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+    } catch {
+      // لا نكشف إن كان البريد موجوداً أم لا
+    }
+    return { success: true, message: 'إن كان البريد مسجلاً فسيصله رابط إعادة التعيين.' };
   },
 
-  // Current User
-  getCurrentUser: (): FirebaseUser | null => {
-    return auth.currentUser;
-  }
+  changePassword: async (currentPassword: string, newPassword: string): Promise<{ success: boolean; error?: string }> => {
+    const user = auth.currentUser;
+    if (!user?.email) return { success: false, error: 'لا توجد جلسة دخول نشطة.' };
+    if (newPassword.length < MIN_PARENT_PASSWORD) {
+      return { success: false, error: `كلمة المرور يجب ألا تقل عن ${MIN_PARENT_PASSWORD} خانات.` };
+    }
+    try {
+      await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, currentPassword));
+      await updatePassword(user, newPassword);
+      return { success: true };
+    } catch (err: any) {
+      if (err?.code === 'auth/invalid-credential' || err?.code === 'auth/wrong-password') {
+        return { success: false, error: 'كلمة المرور الحالية غير صحيحة.' };
+      }
+      return { success: false, error: 'تعذر تغيير كلمة المرور. حاول مرة أخرى.' };
+    }
+  },
+
+  // إنشاء حساب ولي الأمر (الأخصائي فقط). كلمة المرور لا تُحفظ في أي مكان.
+  createParentAccount: async (
+    student: Student,
+    rawUsername: string,
+    password: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    const username = rawUsername.trim().toLowerCase();
+    if (!USERNAME_RULE.test(username)) {
+      return { success: false, error: 'اسم المستخدم: من 3 إلى 30 خانة، أحرف إنجليزية صغيرة وأرقام و(-) أو (_) فقط.' };
+    }
+    if (password.length < MIN_PARENT_PASSWORD) {
+      return { success: false, error: `كلمة المرور يجب ألا تقل عن ${MIN_PARENT_PASSWORD} خانات.` };
+    }
+    if (!auth.currentUser) return { success: false, error: 'سجّل الدخول كأخصائي أولاً.' };
+
+    const provisioning = getProvisioningAuth();
+    let uid: string;
+    try {
+      const cred = await createUserWithEmailAndPassword(provisioning, identifierToEmail(username), password);
+      uid = cred.user.uid;
+    } catch (err: any) {
+      if (err?.code === 'auth/email-already-in-use') {
+        return { success: false, error: 'اسم المستخدم مستخدم من قبل. اختر اسماً آخر.' };
+      }
+      return { success: false, error: authErrorMessage(err?.code) };
+    } finally {
+      try {
+        await signOut(provisioning);
+      } catch {
+        // تجاهل
+      }
+    }
+
+    try {
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'parents', uid), {
+        studentId: student.id,
+        username,
+        createdAt: new Date().toISOString(),
+      });
+      batch.set(doc(db, 'students', student.id), { parentUid: uid, parentUsername: username }, { merge: true });
+      if (student.parentUid && student.parentUid !== uid) {
+        batch.delete(doc(db, 'parents', student.parentUid)); // إلغاء الحساب السابق
+      }
+      await batch.commit();
+      return { success: true };
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, `parents/${uid}`);
+      return { success: false, error: 'تم إنشاء الحساب لكن تعذر ربطه بالطالب. تأكد من نشر قواعد Firestore وحاول مجدداً باسم مستخدم جديد.' };
+    }
+  },
+
+  // إلغاء وصول ولي الأمر فوراً (حذف الربط يمنعه من قراءة أي بيانات)
+  revokeParentAccess: async (student: Student): Promise<boolean> => {
+    if (!student.parentUid) return true;
+    return write(`parents/${student.parentUid}`, async () => {
+      const batch = writeBatch(db);
+      batch.delete(doc(db, 'parents', student.parentUid!));
+      batch.update(doc(db, 'students', student.id), { parentUid: deleteField(), parentUsername: deleteField() });
+      await batch.commit();
+    });
+  },
 };

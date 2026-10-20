@@ -1,168 +1,64 @@
-import { TeacherProfile, Student, SessionRecord, TimelineMilestone, EnrollmentLead, CurrentUser, TeacherCredentials, CompletedAssessmentRecord } from './types';
-import { INITIAL_TEACHER_PROFILE, INITIAL_STUDENTS, INITIAL_SESSIONS, INITIAL_TIMELINES, INITIAL_LEADS, DEFAULT_TEACHER_CREDENTIALS } from './mockData';
+import { TeacherProfile } from './types';
+import { INITIAL_TEACHER_PROFILE } from './mockData';
 
-const STORAGE_KEYS = {
-  TEACHER_PROFILE: 'ofoq_v2_teacher_profile',
-  TEACHER_CREDS: 'ofoq_v1_teacher_credentials',
-  STUDENTS: 'ofoq_v1_students',
-  SESSIONS: 'ofoq_v1_sessions',
-  TIMELINES: 'ofoq_v1_timelines',
-  LEADS: 'ofoq_v1_leads',
-  ASSESSMENTS: 'ofoq_v1_assessments',
-  AUTH: 'ofoq_v1_current_user',
-  THEME: 'ofoq_v2_daylight_theme'
+// لا تُخزَّن هنا أي بيانات طلاب أو جلسات أو تقييمات أو بيانات دخول.
+// يُحفظ فقط: الملف العام للأخصائي (بيانات علنية) وتفضيل المظهر.
+const KEYS = {
+  TEACHER_PROFILE: 'ofoq_v3_public_profile',
+  THEME: 'ofoq_v2_daylight_theme',
 };
 
+// مفاتيح قديمة كانت تحتفظ ببيانات الأطفال وكلمات المرور محلياً في المتصفح.
+const LEGACY_KEYS = [
+  'ofoq_v1_teacher_credentials',
+  'ofoq_v1_students',
+  'ofoq_v1_sessions',
+  'ofoq_v1_timelines',
+  'ofoq_v1_leads',
+  'ofoq_v1_assessments',
+  'ofoq_v1_current_user',
+  'ofoq_v2_teacher_profile',
+  'ofoq_owner_pass_hash',
+];
+
 export const storage = {
-  getTeacherCredentials: (): TeacherCredentials => {
+  // يمسح البيانات الحساسة التي خزّنتها النسخ القديمة من التطبيق على هذا الجهاز.
+  purgeLegacy: () => {
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.TEACHER_CREDS);
-      if (data) {
-        const parsed = JSON.parse(data);
-        if (!parsed.googleAccount) {
-          parsed.googleAccount = DEFAULT_TEACHER_CREDENTIALS.googleAccount;
-        }
-        return {
-          email: parsed.email === 'mfekry225@gmail.com' ? 'mfekry225@outlook.com' : (parsed.email || 'mfekry225@outlook.com'),
-          password: '', // Firebase Auth handles password
-          googleAccount: parsed.googleAccount
-        };
-      }
-      return DEFAULT_TEACHER_CREDENTIALS;
+      LEGACY_KEYS.forEach((k) => localStorage.removeItem(k));
     } catch {
-      return DEFAULT_TEACHER_CREDENTIALS;
+      // تجاهل
     }
-  },
-  saveTeacherCredentials: (creds: TeacherCredentials) => {
-    localStorage.setItem(STORAGE_KEYS.TEACHER_CREDS, JSON.stringify(creds));
   },
 
   getTeacherProfile: (): TeacherProfile => {
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.TEACHER_PROFILE);
-      if (data) {
-        const parsed = JSON.parse(data);
-        const hasLegacySoftware = 
-          parsed.title?.includes('برمجيات') || 
-          parsed.bio?.includes('برمج') || 
-          parsed.portfolioUrl?.includes('vercel') ||
-          !parsed.title?.includes('نطق') ||
-          !parsed.specialistDuties ||
-          !parsed.familySupport;
-        const needsUpdate = 
-          hasLegacySoftware ||
-          parsed.email !== 'mfekry225@outlook.com' ||
-          !parsed.bio?.includes('تعديل') ||
-          JSON.stringify(parsed.certifications || []).includes('مرخص');
-        if (needsUpdate) {
-          localStorage.setItem(STORAGE_KEYS.TEACHER_PROFILE, JSON.stringify(INITIAL_TEACHER_PROFILE));
-          return INITIAL_TEACHER_PROFILE;
-        }
-        if (!parsed.phone || parsed.phone.includes('33000000') || !parsed.whatsapp || parsed.whatsapp.includes('33000000')) {
-          parsed.phone = '+973 36819980';
-          parsed.whatsapp = '97336819980';
-          localStorage.setItem(STORAGE_KEYS.TEACHER_PROFILE, JSON.stringify(parsed));
-        }
-        return parsed;
-      }
-      return INITIAL_TEACHER_PROFILE;
+      const data = localStorage.getItem(KEYS.TEACHER_PROFILE);
+      return data ? { ...INITIAL_TEACHER_PROFILE, ...JSON.parse(data) } : INITIAL_TEACHER_PROFILE;
     } catch {
       return INITIAL_TEACHER_PROFILE;
     }
   },
   saveTeacherProfile: (profile: TeacherProfile) => {
-    localStorage.setItem(STORAGE_KEYS.TEACHER_PROFILE, JSON.stringify(profile));
-  },
-
-  getStudents: (): Student[] => {
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.STUDENTS);
-      return data ? JSON.parse(data) : INITIAL_STUDENTS;
+      localStorage.setItem(KEYS.TEACHER_PROFILE, JSON.stringify(profile));
     } catch {
-      return INITIAL_STUDENTS;
-    }
-  },
-  saveStudents: (students: Student[]) => {
-    localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
-  },
-
-  getSessions: (): SessionRecord[] => {
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.SESSIONS);
-      return data ? JSON.parse(data) : INITIAL_SESSIONS;
-    } catch {
-      return INITIAL_SESSIONS;
-    }
-  },
-  saveSessions: (sessions: SessionRecord[]) => {
-    localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(sessions));
-  },
-
-  getTimelines: (): TimelineMilestone[] => {
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.TIMELINES);
-      return data ? JSON.parse(data) : INITIAL_TIMELINES;
-    } catch {
-      return INITIAL_TIMELINES;
-    }
-  },
-  saveTimelines: (timelines: TimelineMilestone[]) => {
-    localStorage.setItem(STORAGE_KEYS.TIMELINES, JSON.stringify(timelines));
-  },
-
-  getLeads: (): EnrollmentLead[] => {
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.LEADS);
-      return data ? JSON.parse(data) : INITIAL_LEADS;
-    } catch {
-      return INITIAL_LEADS;
-    }
-  },
-  saveLeads: (leads: EnrollmentLead[]) => {
-    localStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(leads));
-  },
-
-  getAssessments: (): CompletedAssessmentRecord[] => {
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.ASSESSMENTS);
-      return data ? JSON.parse(data) : [];
-    } catch {
-      return [];
-    }
-  },
-  saveAssessments: (assessments: CompletedAssessmentRecord[]) => {
-    localStorage.setItem(STORAGE_KEYS.ASSESSMENTS, JSON.stringify(assessments));
-  },
-
-  getCurrentUser: (): CurrentUser | null => {
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.AUTH);
-      return data ? JSON.parse(data) : null;
-    } catch {
-      return null;
-    }
-  },
-  saveCurrentUser: (user: CurrentUser | null) => {
-    if (user) {
-      localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(STORAGE_KEYS.AUTH);
+      // تجاهل
     }
   },
 
   getTheme: (): 'light' | 'dark' => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.THEME);
-      if (saved === 'dark') return 'dark';
-      return 'light'; // Default to daylight / light mode as primary
+      return localStorage.getItem(KEYS.THEME) === 'dark' ? 'dark' : 'light';
     } catch {
       return 'light';
     }
   },
   saveTheme: (theme: 'light' | 'dark') => {
     try {
-      localStorage.setItem(STORAGE_KEYS.THEME, theme);
-    } catch {}
-  }
+      localStorage.setItem(KEYS.THEME, theme);
+    } catch {
+      // تجاهل
+    }
+  },
 };
-

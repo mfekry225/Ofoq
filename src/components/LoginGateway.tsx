@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Student, TeacherProfile, CurrentUser } from '../types';
+import { TeacherProfile } from '../types';
 import { 
   LogIn, User, Lock, Eye, EyeOff, ShieldCheck, 
   Sparkles, CheckCircle2, AlertCircle, RefreshCw, Smartphone
@@ -10,8 +10,6 @@ import { getWhatsAppUrl } from '../utils';
 
 interface LoginGatewayProps {
   teacherProfile: TeacherProfile;
-  students: Student[];
-  onLoginSuccess: (user: CurrentUser) => void;
   onNavigateToProfile: () => void;
 }
 
@@ -19,8 +17,6 @@ const REMEMBER_ME_KEY = 'ofoq_saved_login_user';
 
 export const LoginGateway: React.FC<LoginGatewayProps> = ({
   teacherProfile,
-  students,
-  onLoginSuccess,
   onNavigateToProfile,
 }) => {
   // Unified single form inputs
@@ -47,23 +43,22 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
     }
   }, []);
 
-  // Handle unified login
+  // تسجيل الدخول: الأخصائي ببريده، وولي الأمر باسم المستخدم الذي أنشأه له الأخصائي.
+  // نجاح الدخول يلتقطه التطبيق تلقائياً عبر حالة Firebase Auth (لا نحدد الدور هنا).
   const handleUnifiedLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
 
     const inputUser = identifier.trim();
-    const inputPass = password.trim();
 
-    if (!inputUser || !inputPass) {
+    if (!inputUser || !password) {
       setErrorMsg('يرجى إدخال اسم المستخدم أو البريد الإلكتروني وكلمة المرور');
       return;
     }
 
     setIsSubmitting(true);
 
-    // Save or clear remember me
     try {
       if (rememberMe) {
         localStorage.setItem(REMEMBER_ME_KEY, inputUser);
@@ -74,114 +69,30 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
       // Ignore
     }
 
-    const cleanLower = inputUser.toLowerCase();
-
-    // Check silently if the user is the specialist/owner (e.g. mfekry225@outlook.com, mfekry225@gmail.com, mfekry225, admin, teacher)
-    const isSpecialistTarget = 
-      cleanLower === 'mfekry225@outlook.com' ||
-      cleanLower === 'mfekry225@gmail.com' ||
-      cleanLower.includes('mfekry225') ||
-      cleanLower === (teacherProfile.email || '').toLowerCase() ||
-      cleanLower === 'admin' ||
-      cleanLower === 'أدمن' ||
-      cleanLower === 'teacher' ||
-      cleanLower === 'أخصائي';
-
-    if (isSpecialistTarget) {
-      // Hidden specialist authentication via Firebase Auth
-      try {
-        const targetEmail = cleanLower.includes('@') ? cleanLower : (teacherProfile.email || 'mfekry225@outlook.com');
-        const authResult = await cloudAuth.loginTeacher(targetEmail, inputPass);
-
-        if (authResult.success) {
-          setIsSubmitting(false);
-          onLoginSuccess({
-            role: 'teacher',
-            name: authResult.user?.displayName || teacherProfile.name,
-            email: authResult.user?.email || teacherProfile.email,
-          });
-          return;
-        }
-
-        setIsSubmitting(false);
-        setErrorMsg(authResult.error || 'كلمة المرور غير صحيحة لحساب الإدارة في Firebase.');
-        return;
-      } catch (err: any) {
-        setIsSubmitting(false);
-        setErrorMsg(err?.message || 'تعذر التحقق من خوادم المصادقة السحابية.');
-        return;
-      }
-    }
-
-    // Otherwise: authenticate as a parent/student seamlessly (checking memory and Cloud Firestore)
-    let matchedStudent = students.find((s) => {
-      const matchUser = 
-        (s.parentUsername && s.parentUsername.trim().toLowerCase() === cleanLower) ||
-        (s.parentPhone && s.parentPhone.replace(/[^0-9]/g, '') === inputUser.replace(/[^0-9]/g, '')) ||
-        (s.motherPhone && s.motherPhone.replace(/[^0-9]/g, '') === inputUser.replace(/[^0-9]/g, '')) ||
-        (s.parentAccessCode && s.parentAccessCode.trim().toUpperCase() === inputUser.toUpperCase()) ||
-        (s.parentName && s.parentName.trim() === inputUser) ||
-        (s.name && s.name.trim() === inputUser);
-
-      const matchPass = 
-        (s.parentPassword && s.parentPassword === inputPass) ||
-        (s.parentAccessCode && s.parentAccessCode.trim().toUpperCase() === inputPass.toUpperCase());
-
-      return matchUser && matchPass;
-    });
-
-    // If not found in local memory, query Cloud Firestore directly (supports any phone, tablet, or fresh browser)
-    if (!matchedStudent) {
-      try {
-        const cloudResult = await cloudAuth.loginParent(inputUser, inputPass);
-        if (cloudResult.success && cloudResult.student) {
-          matchedStudent = cloudResult.student;
-        }
-      } catch (cloudErr) {
-        console.warn('Direct Firestore parent lookup notice:', cloudErr);
-      }
-    }
-
-    if (matchedStudent) {
-      setIsSubmitting(false);
-      onLoginSuccess({
-        role: 'parent',
-        studentId: matchedStudent.id,
-        name: matchedStudent.parentName,
-        phone: matchedStudent.parentPhone,
-        student: matchedStudent,
-      });
-      return;
-    }
-
-    // If no match found
+    const result = await cloudAuth.login(inputUser, password);
     setIsSubmitting(false);
-    setErrorMsg('اسم المستخدم أو كلمة المرور غير صحيحة. يرجى التحقق من بيانات الدخول.');
+    if (!result.success) {
+      setErrorMsg(result.error || 'تعذر تسجيل الدخول.');
+    }
   };
 
-
-  // Password reset trigger
+  // استعادة كلمة المرور
   const handleForgotPassword = async () => {
-    const inputUser = identifier.trim().toLowerCase();
-    
-    // If input is owner's email or empty
-    if (!inputUser || inputUser === 'mfekry225@outlook.com' || inputUser === 'mfekry225@gmail.com' || inputUser.includes('mfekry225') || inputUser === 'admin') {
+    const inputUser = identifier.trim();
+
+    // الأخصائي (بريد إلكتروني حقيقي): رابط إعادة تعيين عبر Firebase
+    if (inputUser.includes('@')) {
       setIsResetting(true);
       setErrorMsg('');
       setSuccessMsg('');
-      const targetEmail = inputUser.includes('@') ? inputUser : (teacherProfile.email || 'mfekry225@outlook.com');
-      const res = await cloudAuth.sendPasswordReset(targetEmail);
+      const res = await cloudAuth.sendPasswordReset(inputUser);
       setIsResetting(false);
-      if (res.success) {
-        setSuccessMsg(res.message);
-      } else {
-        setErrorMsg(res.message);
-      }
+      setSuccessMsg(res.message);
       return;
     }
 
-    // For parents: redirect to WhatsApp support
-    const message = `مرحباً، أود استعادة بيانات تسجيل الدخول الخاصة بالطالب على منصة أُفق. المعرف المدخل: ${inputUser}`;
+    // ولي الأمر: التواصل مع الأخصائي عبر واتساب لإصدار بيانات جديدة
+    const message = `مرحباً، أود استعادة بيانات تسجيل الدخول الخاصة بالطالب على منصة أُفق.${inputUser ? ` اسم المستخدم: ${inputUser}` : ''}`;
     window.location.href = getWhatsAppUrl(teacherProfile.phone, message);
   };
 
@@ -348,7 +259,7 @@ export const LoginGateway: React.FC<LoginGatewayProps> = ({
             {/* Bottom Footer Note */}
             <div className="bg-slate-50 dark:bg-slate-900/60 border-t border-slate-100 dark:border-slate-800/80 px-6 py-3.5 text-center flex items-center justify-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>اتصال سحابي آمن ومشفر بواسطة معايير Google Cloud</span>
+              <span>اتصال آمن ومشفر</span>
             </div>
           </div>
 

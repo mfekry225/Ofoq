@@ -12,9 +12,6 @@ import {
   Info, Award, Check
 } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
-import { storage } from '../storage';
-import { cloudService } from '../cloudFirestore';
-import { Student } from '../types';
 
 interface AssessmentScreeningViewProps {
   studentId?: string;
@@ -117,34 +114,6 @@ export const AssessmentScreeningView: React.FC<AssessmentScreeningViewProps> = (
           date: new Date().toISOString().split('T')[0],
           createdAt: new Date().toISOString()
         };
-
-        // Automatic Persistence: local storage + Firestore
-        try {
-          const currentAssessments = storage.getAssessments();
-          storage.saveAssessments([record, ...currentAssessments.filter(a => a.id !== record.id)]);
-          cloudService.saveAssessment(record).catch(() => {});
-
-          // If linked to student, link inside student profile
-          const allStudents = storage.getStudents();
-          const targetStudent = studentId 
-            ? allStudents.find(s => s.id === studentId)
-            : allStudents.find(s => s.name.trim().toLowerCase() === record.childName.toLowerCase());
-
-          if (targetStudent) {
-            record.studentId = targetStudent.id;
-            record.studentName = targetStudent.name;
-            const updatedStudent: Student = {
-              ...targetStudent,
-              assessments: [record, ...(targetStudent.assessments || []).filter(a => a.id !== record.id)],
-              hasNewAssessment: true,
-              lastAssessmentDate: record.date
-            };
-            storage.saveStudents(allStudents.map(s => s.id === updatedStudent.id ? updatedStudent : s));
-            cloudService.saveStudent(updatedStudent).catch(() => {});
-          }
-        } catch (e) {
-          console.warn('Error saving assessment:', e);
-        }
 
         if (onSaveAssessment) {
           onSaveAssessment(record);

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { calculateAgeArabic } from '../studentOptions';
 import { getWhatsAppUrl, formatDateArabic } from '../utils';
+import { ParentAccountModal } from './ParentAccountModal';
 
 interface StudentProfileModalProps {
   student: Student;
@@ -36,6 +37,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'assessments' | 'sessions' | 'timeline'>('overview');
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [showParentAccount, setShowParentAccount] = useState(false);
   const [expandedAssessmentId, setExpandedAssessmentId] = useState<string | null>(null);
 
   // Filter student-specific records
@@ -77,9 +79,6 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
     setCopiedField(fieldName);
     setTimeout(() => setCopiedField(null), 2000);
   };
-
-  const parentPassword = student.parentPassword || (student.parentAccessCode ? `OFQ-${student.parentAccessCode}` : `OFQ${student.id.slice(-4)}`);
-  const parentUsername = student.parentUsername || student.parentPhone;
 
   return (
     <div 
@@ -375,51 +374,25 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                   )}
                 </div>
 
-                {/* Login Credentials Box */}
-                <div className="p-3.5 bg-white dark:bg-[#080d1a] rounded-xl border border-blue-100 dark:border-blue-900/40 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">بيانات دخول ولي الأمر للمنصة:</span>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(`بيانات دخول بوابة متابعة الطالب (${student.name}):\nاسم المستخدم: ${parentUsername}\nكلمة المرور: ${parentPassword}\nالرابط: ${window.location.origin}`, 'all')}
-                      className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
-                    >
-                      {copiedField === 'all' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{copiedField === 'all' ? 'تم نسخ الرسالة!' : 'نسخ الرسالة كاملة لولي الأمر'}</span>
-                    </button>
+                {/* Parent account status */}
+                <div className="p-3.5 bg-white dark:bg-[#080d1a] rounded-xl border border-blue-100 dark:border-blue-900/40 flex items-center justify-between gap-3">
+                  <div className="min-w-0 text-xs">
+                    <span className="font-bold text-slate-700 dark:text-slate-300 block">حساب ولي الأمر للمنصة</span>
+                    {student.parentUid ? (
+                      <span className="text-slate-500 dark:text-slate-400">
+                        مفعّل — اسم المستخدم: <span dir="ltr" className="font-mono font-bold text-blue-900 dark:text-blue-300">{student.parentUsername || '—'}</span>
+                      </span>
+                    ) : (
+                      <span className="text-amber-700 dark:text-amber-400 font-bold">لم يُنشأ بعد</span>
+                    )}
                   </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                    <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-blue-900/30">
-                      <span className="text-slate-500 text-[11px]">اسم المستخدم:</span>
-                      <div className="flex items-center gap-1.5 font-mono font-bold text-blue-900 dark:text-blue-300">
-                        <span>{parentUsername}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopy(parentUsername, 'u')}
-                          className="text-slate-400 hover:text-blue-600"
-                          title="نسخ"
-                        >
-                          {copiedField === 'u' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-blue-900/30">
-                      <span className="text-slate-500 text-[11px]">كلمة المرور:</span>
-                      <div className="flex items-center gap-1.5 font-mono font-bold text-amber-700 dark:text-amber-300">
-                        <span>{parentPassword}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopy(parentPassword, 'p')}
-                          className="text-slate-400 hover:text-amber-600"
-                          title="نسخ"
-                        >
-                          {copiedField === 'p' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowParentAccount(true)}
+                    className="shrink-0 text-[11px] font-bold px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition cursor-pointer"
+                  >
+                    {student.parentUid ? 'إدارة الحساب' : 'إنشاء حساب'}
+                  </button>
                 </div>
               </div>
             </div>
@@ -746,6 +719,10 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
           </div>
         </div>
       </div>
+
+      {showParentAccount && (
+        <ParentAccountModal student={student} onClose={() => setShowParentAccount(false)} />
+      )}
     </div>
   );
 };

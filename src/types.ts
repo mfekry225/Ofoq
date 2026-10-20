@@ -1,19 +1,5 @@
 export type Role = 'teacher' | 'parent';
 
-export interface GoogleAccountLink {
-  linked: boolean;
-  email: string;
-  name?: string;
-  avatarUrl?: string;
-  linkedAt?: string;
-}
-
-export interface TeacherCredentials {
-  email: string;
-  password: string;
-  googleAccount?: GoogleAccountLink;
-}
-
 export interface SpecialistDuty {
   title: string;
   description: string;
@@ -85,9 +71,8 @@ export interface Student {
   parentName: string;
   parentPhone: string;
   motherPhone?: string; // رقم الأم (واتساب / اتصال)
-  parentUsername: string; // Unique username for parent login
-  parentPassword: string; // Password for parent login
-  parentAccessCode?: string; // Optional access code reference
+  parentUsername?: string; // اسم مستخدم حساب ولي الأمر (للعرض فقط، كلمة المرور لا تُحفظ إطلاقاً)
+  parentUid?: string; // معرّف حساب ولي الأمر في Firebase Auth
   currentLevel: string; // e.g. 'مبتدئ متميز', 'متوسط متقدم', 'مستوى 4 - ممتاز'
   levelScore: number; // 0 - 100
   totalSessions: number;

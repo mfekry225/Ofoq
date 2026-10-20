@@ -154,10 +154,12 @@ export const ShareReportModal: React.FC<ShareReportModalProps> = ({
               </div>
             )}
 
-            {/* Access credentials reminder */}
-            <div className="pt-2.5 border-t border-slate-200 dark:border-blue-900/30 text-center text-[11px] text-slate-500 dark:text-slate-400">
-              بيانات الدخول للبوابة: <span className="font-mono text-blue-700 dark:text-blue-300 font-bold">{student.parentUsername || student.parentPhone}</span> (كلمة المرور: <span className="font-mono text-amber-700 dark:text-amber-400 font-bold">{student.parentPassword || '123456'}</span>)
-            </div>
+            {/* Portal reminder (اسم المستخدم فقط، دون كلمة المرور) */}
+            {student.parentUsername && (
+              <div className="pt-2.5 border-t border-slate-200 dark:border-blue-900/30 text-center text-[11px] text-slate-500 dark:text-slate-400">
+                للمتابعة عبر المنصة سجّلوا الدخول باسم المستخدم: <span dir="ltr" className="font-mono text-blue-700 dark:text-blue-300 font-bold">{student.parentUsername}</span>
+              </div>
+            )}
           </div>
         </div>
 
