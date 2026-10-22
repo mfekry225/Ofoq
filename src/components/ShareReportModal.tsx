@@ -45,7 +45,7 @@ export const ShareReportModal: React.FC<ShareReportModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="إغلاق النافذة"
-            className="p-2 rounded-xl bg-slate-100 dark:bg-[#152244] hover:bg-slate-200 dark:hover:bg-[#1e2f5c] text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition cursor-pointer"
+            className="p-2 rounded-xl bg-slate-100 dark:bg-[#152244] hover:bg-slate-200 dark:hover:bg-[#1e2f5c] text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500/60"
           >
             <X className="w-5 h-5" />
           </button>
@@ -60,7 +60,7 @@ export const ShareReportModal: React.FC<ShareReportModalProps> = ({
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-900/10 transition cursor-pointer"
+              className="py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-900/10 transition cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500/60"
             >
               <MessageCircle className="w-4 h-4" />
               <span>إرسال عبر الواتساب فوراً ({student.parentPhone})</span>
@@ -70,7 +70,8 @@ export const ShareReportModal: React.FC<ShareReportModalProps> = ({
               id="copy-report-text-btn"
               type="button"
               onClick={handleCopy}
-              className="py-3 px-4 rounded-xl bg-slate-100 dark:bg-[#152244] hover:bg-slate-200 dark:hover:bg-[#1e2f5c] border border-slate-200 dark:border-blue-900/40 text-slate-700 dark:text-slate-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer"
+              aria-live="polite"
+              className="py-3 px-4 rounded-xl bg-slate-100 dark:bg-[#152244] hover:bg-slate-200 dark:hover:bg-[#1e2f5c] border border-slate-200 dark:border-blue-900/40 text-slate-700 dark:text-slate-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500/60"
             >
               {copied ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-4 h-4 text-slate-500" />}
               <span>{copied ? 'تم النسخ بنجاح!' : 'نسخ نص التقرير بالكامل'}</span>
@@ -166,8 +167,9 @@ export const ShareReportModal: React.FC<ShareReportModalProps> = ({
         {/* Footer */}
         <div className="p-4 border-t border-slate-200 dark:border-blue-900/40 flex justify-end bg-slate-50 dark:bg-[#0b1326]">
           <button
+            type="button"
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-slate-200 dark:bg-[#152244] hover:bg-slate-300 dark:hover:bg-[#1e2f5c] text-slate-700 dark:text-slate-200 text-xs font-bold transition cursor-pointer"
+            className="px-5 py-2 rounded-xl bg-slate-200 dark:bg-[#152244] hover:bg-slate-300 dark:hover:bg-[#1e2f5c] text-slate-700 dark:text-slate-200 text-xs font-bold transition cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500/60"
           >
             إغلاق
           </button>
