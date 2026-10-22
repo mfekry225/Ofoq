@@ -70,6 +70,7 @@ export const ShareReportModal: React.FC<ShareReportModalProps> = ({
               id="copy-report-text-btn"
               type="button"
               onClick={handleCopy}
+              aria-live="polite"
               className="py-3 px-4 rounded-xl bg-slate-100 dark:bg-[#152244] hover:bg-slate-200 dark:hover:bg-[#1e2f5c] border border-slate-200 dark:border-blue-900/40 text-slate-700 dark:text-slate-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer"
             >
               {copied ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-4 h-4 text-slate-500" />}
