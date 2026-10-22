@@ -340,9 +340,11 @@ export const AssessmentScreeningView: React.FC<AssessmentScreeningViewProps> = (
 
                   <button
                     id={`preview-scale-${key}`}
+                    type="button"
                     onClick={() => setPreviewAllItemsScale(previewAllItemsScale === key ? null : key)}
                     className="p-2.5 rounded-xl bg-slate-100 dark:bg-[#152244] hover:bg-slate-200 dark:hover:bg-[#1e2f5c] text-slate-600 dark:text-slate-300 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
                     title="استعراض بنود المقياس بالكامل"
+                    aria-label="استعراض بنود المقياس بالكامل"
                   >
                     {previewAllItemsScale === key ? (
                       <ChevronUp className="w-4 h-4" />
@@ -402,9 +404,11 @@ export const AssessmentScreeningView: React.FC<AssessmentScreeningViewProps> = (
               <ThemeToggle size="sm" />
               <button
                 id="result-print-btn"
+                type="button"
                 onClick={handlePrint}
                 className="p-2 rounded-xl bg-white dark:bg-[#0f172a] hover:bg-blue-50 dark:hover:bg-[#152244] text-slate-600 dark:text-slate-300 border border-sky-100 dark:border-blue-900/40 shadow-xs transition cursor-pointer"
                 title="طباعة التقرير"
+                aria-label="طباعة التقرير"
               >
                 <Printer className="w-4 h-4" />
               </button>
@@ -798,6 +802,7 @@ export const AssessmentScreeningView: React.FC<AssessmentScreeningViewProps> = (
               {selectedScale.questions.map((q, idx) => (
                 <button
                   key={q.id}
+                  type="button"
                   onClick={() => setCurrentStep(idx)}
                   className={`w-2.5 h-2.5 rounded-full transition-all ${
                     idx === currentStep
@@ -807,6 +812,7 @@ export const AssessmentScreeningView: React.FC<AssessmentScreeningViewProps> = (
                       : 'bg-slate-200 dark:bg-slate-700'
                   }`}
                   title={`السؤال ${idx + 1}`}
+                  aria-label={`السؤال ${idx + 1}${answers[q.id] !== undefined ? ' - تمت الإجابة' : ''}`}
                 />
               ))}
             </div>
